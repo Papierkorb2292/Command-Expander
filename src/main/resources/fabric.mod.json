@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "command_expander",
+  "version": "${version}",
+
+  "name": "Command Expander",
+  "description": "Expands the vanilla commands with the following features:",
+  "authors": [
+    "Papierkorb2292"
+  ],
+  "contact": { },
+
+  "license": "CC0-1.0",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.papierkorb2292.command_expander.CommandExpander"
+    ]
+  },
+  "mixins": [
+    "command_expander.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.13.3",
+    "fabric": "*",
+    "minecraft": "1.18.x",
+    "java": ">=17"
+  },
+  "suggests": { }
+}
