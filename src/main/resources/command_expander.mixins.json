@@ -4,6 +4,7 @@
   "package": "net.papierkorb2292.command_expander.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "MinecraftServerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

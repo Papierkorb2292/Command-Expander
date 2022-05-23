@@ -11,7 +11,6 @@ public class CommandExpander implements ModInitializer {
 	@Override
 	public void onInitialize() {
 
-
 		LOGGER.info("Loaded Command Expander");
 	}
 }
