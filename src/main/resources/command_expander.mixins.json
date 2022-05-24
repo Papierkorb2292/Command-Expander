@@ -6,6 +6,9 @@
   "mixins": [
     "MinecraftServerMixin"
   ],
+  "client": [
+    "client.CommandSuggestorMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
