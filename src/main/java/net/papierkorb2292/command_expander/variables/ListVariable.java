@@ -45,7 +45,8 @@ public class ListVariable extends IndexableVariable {
             sb.append(value.get(0).stringValue());
             for(int i = 1; i < value.size(); ++i) {
                 sb.append(", ");
-                sb.append(value.get(i).stringValue());
+                Variable var = value.get(i);
+                sb.append(var == null ? "null" : value.get(i).stringValue());
             }
         }
         sb.append(" ]");
