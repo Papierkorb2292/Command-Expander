@@ -22,7 +22,6 @@ public class MinecraftServerMixin implements VariableManagerContainer {
     )
     private PersistentStateManager command_expander$createVariableManager(PersistentStateManager stateManager) {
         command_expander$variableManager = new VariableManager(stateManager);
-        command_expander$variableManager.test();
         return stateManager;
     }
 

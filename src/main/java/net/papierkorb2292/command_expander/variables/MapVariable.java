@@ -127,9 +127,9 @@ public class MapVariable extends IndexableVariable {
                                 .mapError(error -> "Error decoding values of map: (" + error + ")")
                                 .flatMap(valueList -> {
                                     List<Variable> keys = keyList.getFirst(), values = valueList.getFirst();
-                                    DataResult<T> errorElementsDataResult = ops.listBuilder()
-                                            .add(keyList.getSecond())
-                                            .add(valueList.getSecond())
+                                    DataResult<T> errorElementsDataResult = ops.mapBuilder()
+                                            .add("keys", keyList.getSecond())
+                                            .add("values", valueList.getSecond())
                                             .build(ops.empty());
                                     T errorElements = errorElementsDataResult.resultOrPartial(VariableManager::dumpError).orElse(null);
                                     MapVariable result = new MapVariable(mapType);

@@ -2,7 +2,6 @@ package net.papierkorb2292.command_expander.variables;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
-import com.mojang.datafixers.util.Unit;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.Lifecycle;
@@ -10,19 +9,20 @@ import com.mojang.serialization.ListBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-abstract class VariableCodec { //TODO: Test error handling (After adding /var Command)
+abstract class VariableCodec {
 
-    public <T> DataResult<Pair<Variable, T>> decode(DynamicOps<T> ops, T input, Variable.VariableType type) {
+    public <T> DataResult<Pair<VariableHolder, T>> decode(DynamicOps<T> ops, T input, Variable.VariableType type) {
         return ops.getMap(input).flatMap(
                 result -> {
                     T value = result.get("value");
                     if(value == null) {
-                        return DataResult.success(Pair.of(null, ops.empty()));
+                        return DataResult.success(Pair.of(new VariableHolder(null), ops.empty()));
                     }
-                    return read(ops, result.get("value"), type);
+                    return read(ops, result.get("value"), type).map(pair -> pair.mapFirst(VariableHolder::new));
                 });
     }
 
@@ -44,26 +44,23 @@ abstract class VariableCodec { //TODO: Test error handling (After adding /var Co
     public static <T> DataResult<Pair<List<Variable>, T>> decodeList(DynamicOps<T> ops, T input, Variable.VariableType elementType) {
         return ops.getList(input).setLifecycle(Lifecycle.stable()).flatMap(stream -> {
             final VariableCodec elementCodec = elementType.getTemplate().codec;
-            final ArrayList<Variable> elements = new ArrayList<>();
             final Stream.Builder<T> failed = Stream.builder();
 
-            final AtomicReference<DataResult<Unit>> result = new AtomicReference<>();
-            result.setPlain(DataResult.success(Unit.INSTANCE, Lifecycle.stable()));
+            final AtomicReference<DataResult<List<Variable>>> result = new AtomicReference<>();
+            result.setPlain(DataResult.success(new ArrayList<>(), Lifecycle.stable()));
 
             stream.accept(t -> {
-                final DataResult<Pair<Variable, T>> element = elementCodec.decode(ops, t, elementType);
-                element.error().ifPresent(e -> failed.add(t));
-                result.setPlain(result.getPlain().apply2stable((r, v) -> {
-                    elements.add(v.getFirst());
-                    return r;
-                }, element));
+                final DataResult<VariableHolder> element = elementCodec.decode(ops, t, elementType).map(Pair::getFirst);
+                result.setPlain(result.getPlain().flatMap(list -> {
+                    list.add(element.resultOrPartial(e -> failed.add(t)).map(VariableHolder::getVariable).orElse(null));
+                    if(element.error().isPresent()) {
+                        return DataResult.error(element.error().get().message(), list);
+                    }
+                    return DataResult.success(list);
+                }));
             });
 
-            final T errors = ops.createList(failed.build());
-
-            final Pair<List<Variable>, T> pair = Pair.of(elements, errors);
-
-            return result.getPlain().map(unit -> pair).setPartial(pair);
+            return result.getPlain().map(elements -> Pair.of(elements, ops.createList(failed.build())));
         });
     }
 
@@ -90,5 +87,21 @@ abstract class VariableCodec { //TODO: Test error handling (After adding /var Co
         final String error = errorBuilder.append(')').toString();
         final DataResult<T> result = builder.build(prefix);
         return error.length() == 2 ? result : result.flatMap(value -> DataResult.error(error, value));
+    }
+
+    /**
+     * Used in decoding instead of {@link Variable}, because {@link DataResult} doesn't always work with null values (due to {@link Optional})
+     */
+    public static class VariableHolder {
+
+        public Variable variable;
+
+        public VariableHolder(Variable variable) {
+            this.variable = variable;
+        }
+
+        public Variable getVariable() {
+            return variable;
+        }
     }
 }

@@ -11,6 +11,10 @@ import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.text.ClickEvent;
+import net.minecraft.text.HoverEvent;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.PersistentStateManager;
 import net.papierkorb2292.command_expander.CommandExpander;
@@ -19,6 +23,8 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class VariableManager {
 
@@ -39,15 +45,7 @@ public class VariableManager {
     public static final DynamicCommandExceptionType VARIABLE_ALREADY_EXISTS_EXCEPTION = new DynamicCommandExceptionType(name -> new LiteralMessage(String.format("The variable '%s' already exists", name)));
 
     private final PersistentStateManager stateManager;
-
-    public void test() {
-        try {
-            get(new Identifier("minecraft", "test2"));
-        }
-        catch (CommandSyntaxException e) {
-            CommandExpander.LOGGER.error(e.getMessage());
-        }
-    }
+    private final Map<String, PersistentState> namespaces = new HashMap<>();
 
     public VariableManager(PersistentStateManager stateManager) {
         this.stateManager = stateManager;
@@ -122,24 +120,50 @@ public class VariableManager {
         return type.getTemplate().caster.cast(type, value);
     }
 
+    public static Set<String> getTypes() {
+        return TYPES_BY_STRING.keySet();
+    }
+
+    public static VariableTypeTemplate getType(String name) {
+        return TYPES_BY_STRING.get(name);
+    }
+
     public TypedVariable get(Identifier id) throws CommandSyntaxException {
-        PersistentState state = stateManager.get(data -> new PersistentState(data, id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace());
+        PersistentState state = stateManager.get(data -> createPersistentState(data, id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace());
         if(state == null) {
             throw VARIABLE_NOT_FOUND_EXCEPTION.create(id);
         }
         return state.get(id.getPath());
     }
 
-    public TypedVariable add(Identifier id, Variable.VariableType type) throws CommandSyntaxException {
-        return stateManager.getOrCreate(data -> new PersistentState(data, id.getNamespace()), () -> new PersistentState(new NbtCompound(), id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace()).add(id.getPath(), type);
+    public int getReadonly(Identifier id, Consumer<Text> valueConsumer) throws CommandSyntaxException {
+        PersistentState state = stateManager.get(data -> createPersistentState(data, id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace());
+        if(state == null) {
+            throw VARIABLE_NOT_FOUND_EXCEPTION.create(id);
+        }
+        return state.getReadonly(id.getPath(), valueConsumer);
+    }
+
+    public void add(Identifier id, Variable.VariableType type) throws CommandSyntaxException {
+        stateManager.getOrCreate(data -> createPersistentState(data, id.getNamespace()), () -> createPersistentState(new NbtCompound(), id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace()).add(id.getPath(), type);
     }
 
     public void remove(Identifier id) throws CommandSyntaxException {
-        PersistentState state = stateManager.get(data -> new PersistentState(data, id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace());
+        PersistentState state = stateManager.get(data -> createPersistentState(data, id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace());
         if(state == null) {
             throw VARIABLE_NOT_FOUND_EXCEPTION.create(id);
         }
         state.remove(id.getPath());
+    }
+
+    public Stream<Identifier> getIds() {
+        return this.namespaces.entrySet().stream().flatMap(entry -> entry.getValue().getIds());
+    }
+
+    private PersistentState createPersistentState(NbtCompound data, String namespace) {
+        PersistentState state = new PersistentState(data, namespace);
+        namespaces.put(namespace, state);
+        return state;
     }
 
     private static void registerType(String name, Class<? extends Variable.VariableType> type, VariableTypeTemplate template) {
@@ -155,7 +179,7 @@ public class VariableManager {
          * @param type The type used for getting the types to cast the children, the instance of the caster should be type.getTemplate().caster
          * @param var the variable to cast to the type
          * @throws CommandSyntaxException The type of var is incompatible with the target type
-         * @see VariableManager#castVariable(net.papierkorb2292.command_expander.variables.Variable.VariableType, net.papierkorb2292.command_expander.variables.Variable)
+         * @see VariableManager#castVariable
          */
         Variable cast(Variable.VariableType type, Variable var) throws CommandSyntaxException;
     }
@@ -230,40 +254,6 @@ public class VariableManager {
             super.save(file);
         }
 
-        public TypedVariable get(String name) throws CommandSyntaxException {
-            TypedVariable result = loadedVariables.get(name);
-            if(result == null) {
-                NbtElement variableDataElement = data.get(name);
-                if(variableDataElement == null) {
-                    throw VARIABLE_NOT_FOUND_EXCEPTION.create(new Identifier(namespace, name));
-                }
-                if(!(variableDataElement instanceof NbtCompound variableData)) {
-                    throw VARIABLE_DATA_NOT_COMPOUND_EXCEPTION.create(new Identifier(namespace, name));
-                }
-                if(!variableData.contains("type", 7)) {
-                    throw VARIABLE_DATA_MISSING_ELEMENT_EXCEPTION.create(new Identifier(namespace, name), "type");
-                }
-
-                byte[] typeArray = variableData.getByteArray("type");
-                Variable.VariableType type = decodeType(typeArray, new OffsetHolder(), name);
-                DataResult<Pair<Variable, NbtElement>> dataResult = TYPES_BY_ID.get(typeArray[0]).codec.decode(NbtOps.INSTANCE, variableData, type);
-                Optional<Pair<Variable, NbtElement>> var = dataResult.resultOrPartial(VariableManager::dumpError);
-                if(dataResult.error().isPresent()) {
-                    if(var.isPresent()) {
-                        CommandExpander.LOGGER.error("Error decoding variable '{}': {} with error elements: {}", new Identifier(namespace, name), dataResult.error().get().message(), var.get().getSecond());
-                    }
-                    else {
-                        CommandExpander.LOGGER.error("FATAL error decoding variable '{}', no data could be recovered: {}", new Identifier(namespace, name), dataResult.error().get().message());
-                        throw UNABLE_TO_DECODE_VARIABLE_EXCEPTION.create(new Identifier(namespace, name));
-                    }
-                }
-                result = new TypedVariable(type, var.get().getFirst());
-                loadedVariables.put(name, result);
-                markDirty(); //The variable can be changed without the state knowing
-            }
-            return result;
-        }
-
         private Variable.VariableType decodeType(byte[] type, OffsetHolder offset, String variableName) throws CommandSyntaxException {
             if(type.length - offset.value <= 0) {
                 throw TYPE_DATA_TOO_SHORT_EXCEPTION.create(variableName);
@@ -286,14 +276,72 @@ public class VariableManager {
             public int value = 0;
         }
 
-        public TypedVariable add(String name, Variable.VariableType type) throws CommandSyntaxException {
+        private TypedVariable getOrLoad(String name) throws CommandSyntaxException {
+            TypedVariable result = loadedVariables.get(name);
+            if(result == null) {
+                NbtElement variableDataElement = data.get(name);
+                if(variableDataElement == null) {
+                    throw VARIABLE_NOT_FOUND_EXCEPTION.create(new Identifier(namespace, name));
+                }
+                if(!(variableDataElement instanceof NbtCompound variableData)) {
+                    throw VARIABLE_DATA_NOT_COMPOUND_EXCEPTION.create(new Identifier(namespace, name));
+                }
+                if(!variableData.contains("type", 7)) {
+                    throw VARIABLE_DATA_MISSING_ELEMENT_EXCEPTION.create(new Identifier(namespace, name), "type");
+                }
+
+                byte[] typeArray = variableData.getByteArray("type");
+                Variable.VariableType type = decodeType(typeArray, new OffsetHolder(), name);
+                DataResult<Pair<VariableCodec.VariableHolder, NbtElement>> dataResult = TYPES_BY_ID.get(typeArray[0]).codec.decode(NbtOps.INSTANCE, variableData, type);
+                Optional<Pair<VariableCodec.VariableHolder, NbtElement>> var = dataResult.resultOrPartial(VariableManager::dumpError);
+                if(dataResult.error().isPresent()) {
+                    if(var.isPresent()) {
+                        CommandExpander.LOGGER.error("Error decoding variable '{}': {} with error elements: {}", new Identifier(namespace, name), dataResult.error().get().message(), var.get().getSecond());
+                    }
+                    else {
+                        CommandExpander.LOGGER.error("FATAL error decoding variable '{}', no data could be recovered: {}", new Identifier(namespace, name), dataResult.error().get().message());
+                        throw UNABLE_TO_DECODE_VARIABLE_EXCEPTION.create(new Identifier(namespace, name));
+                    }
+                }
+                result = new TypedVariable(type, var.get().getFirst().variable);
+                loadedVariables.put(name, result);
+            }
+            return result;
+        }
+
+        public TypedVariable get(String name) throws CommandSyntaxException {
+            markDirty(); //The variable can be changed without the state knowing
+            return getOrLoad(name);
+        }
+
+        public int getReadonly(String name, Consumer<Text> valueConsumer) throws CommandSyntaxException {
+            Variable var = getOrLoad(name).var;
+            if(var == null) {
+                valueConsumer.accept(buildCopyableText("null"));
+                return 0;
+            }
+            valueConsumer.accept(buildCopyableText(var.stringValue()));
+            return var.intValue();
+        }
+
+        private Text buildCopyableText(String text) {
+            return new LiteralText(text).styled(style ->
+                    style.withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, text))
+                            .withUnderline(true)
+                            .withColor(0x55FF55)
+                            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.of("Click to copy"))));
+        }
+
+        public Stream<Identifier> getIds() {
+            return data.getKeys().stream().map(key -> new Identifier(namespace, key));
+        }
+
+        public void add(String name, Variable.VariableType type) throws CommandSyntaxException {
             if(loadedVariables.containsKey(name) || data.contains(name, NbtElement.COMPOUND_TYPE)) {
                 throw VARIABLE_ALREADY_EXISTS_EXCEPTION.create(new Identifier(namespace, name));
             }
-            TypedVariable result = new TypedVariable(type, null);
-            loadedVariables.put(name, result);
+            loadedVariables.put(name, new TypedVariable(type, null));
             markDirty();
-            return result;
         }
 
         public void remove(String name) throws CommandSyntaxException {

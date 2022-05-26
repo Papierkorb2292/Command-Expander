@@ -2,7 +2,7 @@ package net.papierkorb2292.command_expander.variables;
 
 import java.util.function.Supplier;
 
-class VariableTypeTemplate {
+public class VariableTypeTemplate {
     public final int childrenCount;
     byte id;
     public final Supplier<Variable.VariableType> typeFactory;
