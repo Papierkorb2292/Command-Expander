@@ -128,35 +128,35 @@ public class VariableManager {
         return TYPES_BY_STRING.get(name);
     }
 
-    public TypedVariable get(Identifier id) throws CommandSyntaxException {
-        PersistentState state = stateManager.get(data -> createPersistentState(data, id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace());
+    public TypedVariable get(VariableIdentifier id) throws CommandSyntaxException {
+        PersistentState state = stateManager.get(data -> createPersistentState(data, id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace);
         if(state == null) {
             throw VARIABLE_NOT_FOUND_EXCEPTION.create(id);
         }
-        return state.get(id.getPath());
+        return state.get(id.path);
     }
 
-    public int getReadonly(Identifier id, Consumer<Text> valueConsumer) throws CommandSyntaxException {
-        PersistentState state = stateManager.get(data -> createPersistentState(data, id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace());
+    public int getReadonly(VariableIdentifier id, Consumer<Text> valueConsumer) throws CommandSyntaxException {
+        PersistentState state = stateManager.get(data -> createPersistentState(data, id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace);
         if(state == null) {
             throw VARIABLE_NOT_FOUND_EXCEPTION.create(id);
         }
-        return state.getReadonly(id.getPath(), valueConsumer);
+        return state.getReadonly(id.path, valueConsumer);
     }
 
-    public void add(Identifier id, Variable.VariableType type) throws CommandSyntaxException {
-        stateManager.getOrCreate(data -> createPersistentState(data, id.getNamespace()), () -> createPersistentState(new NbtCompound(), id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace()).add(id.getPath(), type);
+    public void add(VariableIdentifier id, Variable.VariableType type) throws CommandSyntaxException {
+        stateManager.getOrCreate(data -> createPersistentState(data, id.namespace), () -> createPersistentState(new NbtCompound(), id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace).add(id.path, type);
     }
 
-    public void remove(Identifier id) throws CommandSyntaxException {
-        PersistentState state = stateManager.get(data -> createPersistentState(data, id.getNamespace()), COMMAND_VARIABLE_PREFIX + id.getNamespace());
+    public void remove(VariableIdentifier id) throws CommandSyntaxException {
+        PersistentState state = stateManager.get(data -> createPersistentState(data, id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace);
         if(state == null) {
             throw VARIABLE_NOT_FOUND_EXCEPTION.create(id);
         }
-        state.remove(id.getPath());
+        state.remove(id.path);
     }
 
-    public Stream<Identifier> getIds() {
+    public Stream<VariableIdentifier> getIds() {
         return this.namespaces.entrySet().stream().flatMap(entry -> entry.getValue().getIds());
     }
 
@@ -332,8 +332,15 @@ public class VariableManager {
                             .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.of("Click to copy"))));
         }
 
-        public Stream<Identifier> getIds() {
-            return data.getKeys().stream().map(key -> new Identifier(namespace, key));
+        public Stream<VariableIdentifier> getIds() {
+            return data.getKeys().stream().map(key -> {
+                try {
+                    return new VariableIdentifier(namespace, key);
+                } catch (CommandSyntaxException e) {
+                    CommandExpander.LOGGER.error("Unexpected exception creating list of existing variable ids: ", e);
+                }
+                return null;
+            }).filter(Objects::nonNull);
         }
 
         public void add(String name, Variable.VariableType type) throws CommandSyntaxException {
