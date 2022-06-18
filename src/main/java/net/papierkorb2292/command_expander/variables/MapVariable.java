@@ -89,8 +89,15 @@ public class MapVariable extends IndexableVariable {
     }
 
     public static class MapVariableType implements VariableType {
+
         VariableType key;
         VariableType value;
+
+        public MapVariableType() { }
+        public MapVariableType(VariableType key, VariableType value) {
+            this.key = key;
+            this.value = value;
+        }
 
         @Override
         public Variable createVariable() {
