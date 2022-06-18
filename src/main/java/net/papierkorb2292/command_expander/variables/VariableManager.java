@@ -292,8 +292,8 @@ public class VariableManager {
 
                 byte[] typeArray = variableData.getByteArray("type");
                 Variable.VariableType type = decodeType(typeArray, new OffsetHolder(), name);
-                DataResult<Pair<VariableCodec.VariableHolder, NbtElement>> dataResult = TYPES_BY_ID.get(typeArray[0]).codec.decode(NbtOps.INSTANCE, variableData, type);
-                Optional<Pair<VariableCodec.VariableHolder, NbtElement>> var = dataResult.resultOrPartial(VariableManager::dumpError);
+                DataResult<Pair<VariableHolder, NbtElement>> dataResult = TYPES_BY_ID.get(typeArray[0]).codec.decode(NbtOps.INSTANCE, variableData, type);
+                Optional<Pair<VariableHolder, NbtElement>> var = dataResult.resultOrPartial(VariableManager::dumpError);
                 if(dataResult.error().isPresent()) {
                     if(var.isPresent()) {
                         CommandExpander.LOGGER.error("Error decoding variable '{}': {} with error elements: {}", new Identifier(namespace, name), dataResult.error().get().message(), var.get().getSecond());

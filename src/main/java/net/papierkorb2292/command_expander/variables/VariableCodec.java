@@ -9,7 +9,6 @@ import com.mojang.serialization.ListBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
@@ -87,21 +86,5 @@ abstract class VariableCodec {
         final String error = errorBuilder.append(')').toString();
         final DataResult<T> result = builder.build(prefix);
         return error.length() == 2 ? result : result.flatMap(value -> DataResult.error(error, value));
-    }
-
-    /**
-     * Used in decoding instead of {@link Variable}, because {@link DataResult} doesn't always work with null values (due to {@link Optional})
-     */
-    public static class VariableHolder {
-
-        public Variable variable;
-
-        public VariableHolder(Variable variable) {
-            this.variable = variable;
-        }
-
-        public Variable getVariable() {
-            return variable;
-        }
     }
 }
