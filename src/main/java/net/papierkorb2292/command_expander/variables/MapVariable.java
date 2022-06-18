@@ -74,8 +74,18 @@ public class MapVariable extends IndexableVariable {
     }
 
     @Override
-    public Variable getOrCreate(Variable indexVar) {
-        return value.computeIfAbsent(indexVar, key -> type.value.createVariable());
+    public boolean ensureIndexExists(Variable indexVar) {
+        return value.containsKey(indexVar);
+    }
+
+    @Override
+    public void set(Variable indexVar, Variable value) {
+        this.value.put(indexVar, value);
+    }
+
+    @Override
+    protected VariableType getContent() {
+        return type.value;
     }
 
     public static class MapVariableType implements VariableType {

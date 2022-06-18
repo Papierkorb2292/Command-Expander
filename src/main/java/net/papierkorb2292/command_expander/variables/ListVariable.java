@@ -70,27 +70,31 @@ public class ListVariable extends IndexableVariable {
     }
 
     @Override
-    public Variable getOrCreate(Variable indexVar) {
+    public boolean ensureIndexExists(Variable indexVar) {
         int index = indexVar.intValue();
         if(index >= 0 && index < value.size()) {
-            Variable result = value.get(index);
-            if(result == null) {
-                result = type.content.createVariable();
-                value.set(index, result);
-            }
-            return result;
+            return true;
         }
-        //Creating a new variable at the index and filling up with null
-        Variable createdVariable = type.content.createVariable();
         int indexDifference = index - value.size();
         if(indexDifference == 0) { //Adding single element without array
-            value.add(createdVariable);
-            return createdVariable;
+            value.add(null);
+            return false;
         }
-        Variable[] addedVariables = new Variable[indexDifference + 1];
-        addedVariables[indexDifference] = createdVariable;
-        value.addAll(Arrays.asList(addedVariables));
-        return createdVariable;
+        value.addAll(Collections.nCopies(indexDifference + 1, null));
+        return false;
+    }
+
+    @Override
+    public void set(Variable indexVar, Variable value) {
+        int index = indexVar.intValue();
+        if(index >= 0 && index < this.value.size()) {
+            this.value.set(index, value);
+        }
+    }
+
+    @Override
+    protected VariableType getContent() {
+        return type.content;
     }
 
     public static class ListVariableType implements VariableType {
