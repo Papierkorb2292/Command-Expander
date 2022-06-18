@@ -372,6 +372,7 @@ public class VariableManager {
         registerType("int", IntVariable.IntVariableType.class, IntVariable.IntVariableType.template);
         registerType("list", ListVariable.ListVariableType.class, ListVariable.ListVariableType.template);
         registerType("map", MapVariable.MapVariableType.class, MapVariable.MapVariableType.template);
+        registerType("double", DoubleVariable.DoubleVariableType.class, DoubleVariable.DoubleVariableType.template);
     }
 
     public static void dumpError(String error) { }
