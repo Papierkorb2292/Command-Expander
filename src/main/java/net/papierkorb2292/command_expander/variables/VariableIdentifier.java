@@ -46,7 +46,7 @@ public class VariableIdentifier {
     }
 
     public static boolean isNameInvalid(String name) {
-        if(name.isEmpty() || illegalVariableNames.contains(name)) {
+        if(name.isEmpty() || illegalVariableNames.contains(name) || VariableManager.getTypes().contains(name)) {
             return true;
         }
         if(isCharInvalidFirst(name.charAt(0))) {
