@@ -8,6 +8,11 @@ public class IntVariable extends Variable {
 
     private int value = 0;
 
+    public IntVariable() { }
+    public IntVariable(int value) {
+        this.value = value;
+    }
+
     public void setValue(int value) {
         this.value = value;
     }
