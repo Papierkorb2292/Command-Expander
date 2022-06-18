@@ -111,6 +111,11 @@ public class ListVariable extends IndexableVariable {
         }
 
         @Override
+        public VariableType getNextLoweredType() {
+            return IntVariable.IntVariableType.INSTANCE;
+        }
+
+        @Override
         public void setChild(int index, VariableType child) {
             if (index == 0) {
                 content = child;

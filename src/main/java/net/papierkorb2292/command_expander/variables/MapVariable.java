@@ -103,6 +103,11 @@ public class MapVariable extends IndexableVariable {
         }
 
         @Override
+        public VariableType getNextLoweredType() {
+            return IntVariable.IntVariableType.INSTANCE; //TODO: Change to list of map entries
+        }
+
+        @Override
         public void setChild(int index, VariableType child) {
             if(index == 0) {
                 key = child;

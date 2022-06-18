@@ -65,6 +65,11 @@ public class IntVariable extends Variable {
             return template;
         }
 
+        @Override
+        public VariableType getNextLoweredType() {
+            return DoubleVariable.DoubleVariableType.INSTANCE; //TODO: Change to long
+        }
+
         public static final VariableTypeTemplate template = new VariableTypeTemplate(0, () -> IntVariable.IntVariableType.INSTANCE, (type, var) -> {
             IntVariable result = new IntVariable();
             result.setValue(var.intValue());
