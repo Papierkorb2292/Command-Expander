@@ -59,6 +59,11 @@ public class ListVariable extends IndexableVariable {
     }
 
     @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
+
+    @Override
     public Variable get(Variable indexVar) {
         int index = indexVar.intValue();
         return index >= 0 && index < value.size() ? value.get(indexVar.intValue()) : null;

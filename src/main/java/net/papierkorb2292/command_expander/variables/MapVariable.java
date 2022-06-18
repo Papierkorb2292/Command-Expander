@@ -59,6 +59,11 @@ public class MapVariable extends IndexableVariable {
         return type;
     }
 
+    @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
+
     private String buildEntryStringValue(Map.Entry<Variable, Variable> entry) {
         return String.format("{ %s, %s }", entry.getKey() == null ? "null" : entry.getKey().stringValue(), entry.getValue() == null ? "null" : entry.getValue().stringValue());
     }

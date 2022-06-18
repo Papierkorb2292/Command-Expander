@@ -22,6 +22,9 @@ public abstract class Variable {
 
     public abstract VariableType getType();
 
+    @Override
+    public abstract int hashCode();
+
     public interface VariableType {
 
         Variable createVariable();

@@ -42,6 +42,11 @@ public class IntVariable extends Variable {
         return IntVariableType.INSTANCE;
     }
 
+    @Override
+    public int hashCode() {
+        return value;
+    }
+
     public static class IntVariableType implements VariableType {
 
         public static final IntVariableType INSTANCE = new IntVariableType();
