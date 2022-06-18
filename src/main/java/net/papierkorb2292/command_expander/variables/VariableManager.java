@@ -173,7 +173,7 @@ public class VariableManager {
     }
 
     @FunctionalInterface
-    interface Caster {
+    public interface Caster {
         /**
          * Casts var to the specified type
          * @param type The type used for getting the types to cast the children, the instance of the caster should be type.getTemplate().caster
