@@ -70,25 +70,20 @@ public class IntVariable extends Variable {
             return DoubleVariable.DoubleVariableType.INSTANCE; //TODO: Change to long
         }
 
-        public static final VariableTypeTemplate template = new VariableTypeTemplate(0, () -> IntVariable.IntVariableType.INSTANCE, (type, var) -> {
-            IntVariable result = new IntVariable();
-            result.setValue(var.intValue());
-            return result;
-        }, new VariableCodec() {
+        public static final VariableTypeTemplate template = new VariableTypeTemplate(
+                0, () -> IntVariable.IntVariableType.INSTANCE,
+                (type, var) -> new IntVariable(var.intValue()),
+                new VariableCodec() {
 
-            @Override
-            public <T> DataResult<T> write(Variable input, DynamicOps<T> ops, T prefix) {
-                return ops.mergeToPrimitive(prefix, ops.createInt(input.intValue()));
-            }
+                    @Override
+                    public <T> DataResult<T> write(Variable input, DynamicOps<T> ops, T prefix) {
+                        return ops.mergeToPrimitive(prefix, ops.createInt(input.intValue()));
+                    }
 
-            @Override
-            public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
-                return ops.getNumberValue(input).map(value -> {
-                    IntVariable var = new IntVariable();
-                    var.setValue(value.intValue());
-                    return Pair.of(var, ops.empty());
+                    @Override
+                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
+                        return ops.getNumberValue(input).map(value -> Pair.of(new IntVariable(value.intValue()), ops.empty()));
+                    }
                 });
-            }
-        });
     }
 }
