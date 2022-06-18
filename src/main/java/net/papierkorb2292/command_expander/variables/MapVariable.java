@@ -65,7 +65,7 @@ public class MapVariable extends IndexableVariable {
     }
 
     private String buildEntryStringValue(Map.Entry<Variable, Variable> entry) {
-        return String.format("{ %s, %s }", entry.getKey() == null ? "null" : entry.getKey().stringValue(), entry.getValue() == null ? "null" : entry.getValue().stringValue());
+        return String.format("{ %s: %s }", entry.getKey() == null ? "null" : entry.getKey().stringValue(), entry.getValue() == null ? "null" : entry.getValue().stringValue());
     }
 
     @Override
