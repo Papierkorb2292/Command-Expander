@@ -106,7 +106,7 @@ public class MapVariable extends IndexableVariable {
 
         @Override
         public VariableTypeTemplate getTemplate() {
-            return template;
+            return TEMPLATE;
         }
 
         @Override
@@ -129,7 +129,7 @@ public class MapVariable extends IndexableVariable {
             return index == 0 ? key : index == 1 ? value : null;
         }
 
-        public static final VariableTypeTemplate template = new VariableTypeTemplate(2, MapVariable.MapVariableType::new, (type, var) -> {
+        public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(2, MapVariable.MapVariableType::new, (type, var) -> {
             if(!(var instanceof MapVariable map)) {
                 throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("MapVariable", var.getClass().getName());
             }

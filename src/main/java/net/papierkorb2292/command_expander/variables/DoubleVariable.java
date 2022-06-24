@@ -62,7 +62,7 @@ public class DoubleVariable extends Variable {
         }
 
         public VariableTypeTemplate getTemplate() {
-            return template;
+            return TEMPLATE;
         }
 
         @Override
@@ -70,7 +70,7 @@ public class DoubleVariable extends Variable {
             return null;
         }
 
-        public static final VariableTypeTemplate template = new VariableTypeTemplate(
+        public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(
                 0, () -> IntVariable.IntVariableType.INSTANCE,
                 (type, var) -> new DoubleVariable(var.doubleValue()),
                 new VariableCodec() {

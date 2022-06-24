@@ -62,7 +62,7 @@ public class IntVariable extends Variable {
         }
 
         public VariableTypeTemplate getTemplate() {
-            return template;
+            return TEMPLATE;
         }
 
         @Override
@@ -70,7 +70,7 @@ public class IntVariable extends Variable {
             return DoubleVariable.DoubleVariableType.INSTANCE; //TODO: Change to long
         }
 
-        public static final VariableTypeTemplate template = new VariableTypeTemplate(
+        public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(
                 0, () -> IntVariable.IntVariableType.INSTANCE,
                 (type, var) -> new IntVariable(var.intValue()),
                 new VariableCodec() {

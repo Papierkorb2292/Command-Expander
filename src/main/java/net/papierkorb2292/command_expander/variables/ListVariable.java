@@ -114,7 +114,7 @@ public class ListVariable extends IndexableVariable {
 
         @Override
         public VariableTypeTemplate getTemplate() {
-            return template;
+            return TEMPLATE;
         }
 
         @Override
@@ -134,10 +134,7 @@ public class ListVariable extends IndexableVariable {
             return index == 0 ? content : null;
         }
 
-        public static final VariableTypeTemplate template = new VariableTypeTemplate(1, ListVariable.ListVariableType::new, (type, var) -> {
-            if(!(var instanceof ListVariable list)) {
-                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("ListVariable", var.getClass().getName());
-            }
+        public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(1, ListVariable.ListVariableType::new, (type, var) -> {
             ListVariable.ListVariableType listType = (ListVariable.ListVariableType)type;
             Variable.VariableType childrenType = listType.content;
             VariableManager.Caster childrenCaster = childrenType.getTemplate().caster;

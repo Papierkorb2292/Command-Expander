@@ -369,10 +369,10 @@ public class VariableManager {
     }
 
     static {
-        registerType("int", IntVariable.IntVariableType.class, IntVariable.IntVariableType.template);
-        registerType("list", ListVariable.ListVariableType.class, ListVariable.ListVariableType.template);
-        registerType("map", MapVariable.MapVariableType.class, MapVariable.MapVariableType.template);
-        registerType("double", DoubleVariable.DoubleVariableType.class, DoubleVariable.DoubleVariableType.template);
+        registerType("int", IntVariable.IntVariableType.class, IntVariable.IntVariableType.TEMPLATE);
+        registerType("list", ListVariable.ListVariableType.class, ListVariable.ListVariableType.TEMPLATE);
+        registerType("map", MapVariable.MapVariableType.class, MapVariable.MapVariableType.TEMPLATE);
+        registerType("double", DoubleVariable.DoubleVariableType.class, DoubleVariable.DoubleVariableType.TEMPLATE);
     }
 
     public static void dumpError(String error) { }
