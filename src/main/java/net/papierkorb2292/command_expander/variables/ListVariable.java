@@ -97,7 +97,7 @@ public class ListVariable extends IndexableVariable {
 
     public static class ListVariableType implements VariableType {
 
-        VariableType content;
+        public VariableType content;
 
         public ListVariableType() { }
         public ListVariableType(VariableType content) {

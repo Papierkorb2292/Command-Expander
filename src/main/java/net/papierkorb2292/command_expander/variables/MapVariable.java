@@ -88,8 +88,8 @@ public class MapVariable extends IndexableVariable {
 
     public static class MapVariableType implements VariableType {
 
-        VariableType key;
-        VariableType value;
+        public VariableType key;
+        public VariableType value;
 
         public MapVariableType() { }
         public MapVariableType(VariableType key, VariableType value) {
