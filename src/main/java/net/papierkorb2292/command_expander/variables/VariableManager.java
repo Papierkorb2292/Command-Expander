@@ -373,6 +373,7 @@ public class VariableManager {
         registerType("list", ListVariable.ListVariableType.class, ListVariable.ListVariableType.TEMPLATE);
         registerType("map", MapVariable.MapVariableType.class, MapVariable.MapVariableType.TEMPLATE);
         registerType("double", DoubleVariable.DoubleVariableType.class, DoubleVariable.DoubleVariableType.TEMPLATE);
+        registerType("entry", MapEntryVariable.MapEntryVariableType.class, MapEntryVariable.MapEntryVariableType.TEMPLATE);
     }
 
     public static void dumpError(String error) { }

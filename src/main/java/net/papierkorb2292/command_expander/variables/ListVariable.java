@@ -4,10 +4,7 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class ListVariable extends IndexableVariable {
 
@@ -41,7 +38,7 @@ public class ListVariable extends IndexableVariable {
     @Override
     public String stringValue() {
         StringBuilder sb = new StringBuilder();
-        sb.append("[ ");
+        sb.append("{ ");
         if(value.size() > 0) {
             sb.append(value.get(0).stringValue());
             for(int i = 1; i < value.size(); ++i) {
@@ -50,7 +47,7 @@ public class ListVariable extends IndexableVariable {
                 sb.append(var == null ? "null" : value.get(i).stringValue());
             }
         }
-        sb.append(" ]");
+        sb.append(" }");
         return sb.toString();
     }
 
@@ -138,6 +135,23 @@ public class ListVariable extends IndexableVariable {
             ListVariable.ListVariableType listType = (ListVariable.ListVariableType)type;
             Variable.VariableType childrenType = listType.content;
             VariableManager.Caster childrenCaster = childrenType.getTemplate().caster;
+            if(var instanceof MapVariable map) {
+                MapEntryVariable.MapEntryVariableType mapEntryType = (MapEntryVariable.MapEntryVariableType)map.getType().getNextLoweredType().getChild(0);
+                Variable[] castedChildren = new Variable[map.value.size()];
+                Iterator<Variable> keys = map.value.keySet().iterator(), values = map.value.values().iterator();
+                MapEntryVariable entry = new MapEntryVariable(mapEntryType);
+                for(int i = 0; i < castedChildren.length; ++i) {
+                    entry.key = keys.next();
+                    entry.value = values.next();
+                    castedChildren[i] = childrenCaster.cast(childrenType, entry);
+                }
+                ListVariable result = new ListVariable(listType);
+                result.value.addAll(Arrays.asList(castedChildren));
+                return result;
+            }
+            if(!(var instanceof ListVariable list)) {
+                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("ListVariable", var.getClass().getName());
+            }
             Variable[] castedChildren = new Variable[list.value.size()];
             for(int i = 0; i < castedChildren.length; ++i) {
                 castedChildren[i] = childrenCaster.cast(childrenType, list.value.get(i));

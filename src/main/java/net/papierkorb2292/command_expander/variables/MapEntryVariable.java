@@ -1,105 +1,81 @@
 package net.papierkorb2292.command_expander.variables;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
-public class MapVariable extends IndexableVariable {
+public class MapEntryVariable extends Variable {
 
-    final MapVariableType type;
-    final Map<Variable, Variable> value = new HashMap<>();
+    public Variable key, value;
+    final MapEntryVariableType type;
 
-    public MapVariable(MapVariableType type) {
+    public MapEntryVariable(MapEntryVariableType type) {
         this.type = type;
+    }
+
+    public MapEntryVariable(MapEntryVariableType type, Variable key, Variable value) throws CommandSyntaxException  {
+        this.type = type;
+        key = VariableManager.castVariable(type.key, key);
+        value = VariableManager.castVariable(type.value, value);
     }
 
     @Override
     public int intValue() {
-        return value.size();
+        return value.intValue();
     }
 
     @Override
     public long longValue() {
-        return value.size();
+        return value.longValue();
     }
 
     @Override
     public float floatValue() {
-        return value.size();
+        return value.floatValue();
     }
 
     @Override
     public double doubleValue() {
-        return value.size();
+        return value.doubleValue();
     }
 
     @Override
     public String stringValue() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{ ");
-        if(value.size() > 0) {
-            Iterator<Map.Entry<Variable, Variable>> it = value.entrySet().iterator();
-            Map.Entry<Variable, Variable> entry = it.next();
-            sb.append(MapEntryVariable.buildStringValue(entry.getKey(), entry.getValue()));
-            while(it.hasNext()) {
-                sb.append(", ");
-                entry = it.next();
-                sb.append(MapEntryVariable.buildStringValue(entry.getKey(), entry.getValue()));
-            }
-        }
-        sb.append(" }");
-        return sb.toString();
+        return buildStringValue(key, value);
+    }
+
+    public static String buildStringValue(Variable key, Variable value) {
+        return String.format("{ %s: %s }", key == null ? "null" : key.stringValue(), value == null ? "null" : value.stringValue());
     }
 
     @Override
     public VariableType getType() {
-        return type;
+        return null;
     }
 
     @Override
     public int hashCode() {
-        return value.hashCode();
+        return 0;
     }
 
-    @Override
-    public Variable get(Variable indexVar) {
-        return value.get(indexVar);
-    }
+    public static class MapEntryVariableType implements VariableType {
 
-    @Override
-    public boolean ensureIndexExists(Variable indexVar) {
-        return value.containsKey(indexVar);
-    }
+        public VariableType key;
+        public VariableType value;
 
-    @Override
-    public void set(Variable indexVar, Variable value) {
-        this.value.put(indexVar, value);
-    }
-
-    @Override
-    protected VariableType getContent() {
-        return type.value;
-    }
-
-    public static class MapVariableType implements VariableType {
-
-        VariableType key;
-        VariableType value;
-
-        public MapVariableType() { }
-        public MapVariableType(VariableType key, VariableType value) {
+        public MapEntryVariableType() { }
+        public MapEntryVariableType(VariableType key, VariableType value) {
             this.key = key;
             this.value = value;
         }
 
         @Override
         public Variable createVariable() {
-            return new MapVariable(this);
+            return new MapEntryVariable(this);
         }
 
         @Override
@@ -109,36 +85,15 @@ public class MapVariable extends IndexableVariable {
 
         @Override
         public VariableType getNextLoweredType() {
-            return new ListVariable.ListVariableType(new MapEntryVariable.MapEntryVariableType(key, value));
+            return null;
         }
 
-        @Override
-        public void setChild(int index, VariableType child) {
-            if(index == 0) {
-                key = child;
-                return;
+        public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(2, MapEntryVariableType::new, (type, var) -> {
+            if(!(var instanceof MapEntryVariable entry)) {
+                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("MapEntryVariable", var.getClass().getName());
             }
-            if(index == 1) {
-                value = child;
-            }
-        }
-
-        public VariableType getChild(int index) {
-            return index == 0 ? key : index == 1 ? value : null;
-        }
-
-        public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(2, MapVariable.MapVariableType::new, (type, var) -> {
-            if(!(var instanceof MapVariable map)) {
-                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("MapVariable", var.getClass().getName());
-            }
-            MapVariable.MapVariableType mapType = (MapVariable.MapVariableType)type;
-            Variable.VariableType keyType = mapType.key, valueType = mapType.value;
-            VariableManager.Caster keyCaster = keyType.getTemplate().caster, valueCaster = valueType.getTemplate().caster;
-            MapVariable result = new MapVariable(mapType);
-            for(Map.Entry<Variable, Variable> entry : map.value.entrySet()) {
-                result.value.put(keyCaster.cast(keyType, entry.getKey()), valueCaster.cast(valueType, entry.getValue()));
-            }
-            return result;
+            MapEntryVariableType entryType = (MapEntryVariableType)type;
+            return new MapEntryVariable(entryType, entry.key, entry.value);
         }, new VariableCodec() {
 
             @Override
