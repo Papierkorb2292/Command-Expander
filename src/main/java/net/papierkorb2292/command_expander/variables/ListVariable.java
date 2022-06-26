@@ -5,6 +5,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 public class ListVariable extends IndexableVariable {
 
@@ -91,8 +92,30 @@ public class ListVariable extends IndexableVariable {
     }
 
     @Override
-    protected VariableType getContent() {
+    public void remove(Variable indexVar) {
+        int index = indexVar.intValue(), lastIndex = value.size() - 1;
+        if(index >= 0 && index < lastIndex) {
+            value.set(index, null);
+            return;
+        }
+        if(index == lastIndex) {
+            value.remove(lastIndex);
+        }
+    }
+
+    @Override
+    public Variable ensureIndexCompatible(Variable indexVar) {
+        return indexVar;
+    }
+
+    @Override
+    public VariableType getContentType() {
         return type.content;
+    }
+
+    @Override
+    public Stream<Variable> getContents() {
+        return value.stream();
     }
 
     public static class ListVariableType implements VariableType {

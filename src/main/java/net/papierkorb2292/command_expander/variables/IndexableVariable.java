@@ -1,5 +1,9 @@
 package net.papierkorb2292.command_expander.variables;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
+import java.util.stream.Stream;
+
 public abstract class IndexableVariable extends Variable {
 
     public abstract Variable get(Variable indexVar);
@@ -9,14 +13,17 @@ public abstract class IndexableVariable extends Variable {
      */
     public abstract boolean ensureIndexExists(Variable indexVar);
     public abstract void set(Variable indexVar, Variable value);
+    public abstract void remove(Variable indexVar);
+    public abstract Variable ensureIndexCompatible(Variable indexVar) throws CommandSyntaxException;
 
-    protected abstract VariableType getContent();
+    public abstract VariableType getContentType();
+    public abstract Stream<Variable> getContents();
 
     public Variable ensureIndexAndGet(Variable indexVar) {
         if (ensureIndexExists(indexVar)) {
             return get(indexVar);
         }
-        Variable value = getContent().createVariable();
+        Variable value = getContentType().createVariable();
         set(indexVar, value);
         return value;
     }

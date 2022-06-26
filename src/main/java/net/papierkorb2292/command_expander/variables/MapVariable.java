@@ -1,5 +1,6 @@
 package net.papierkorb2292.command_expander.variables;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
@@ -8,6 +9,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 public class MapVariable extends IndexableVariable {
 
@@ -82,8 +84,29 @@ public class MapVariable extends IndexableVariable {
     }
 
     @Override
-    protected VariableType getContent() {
+    public void remove(Variable indexVar) {
+        value.remove(indexVar);
+    }
+
+    @Override
+    public Variable ensureIndexCompatible(Variable indexVar) throws CommandSyntaxException {
+        return VariableManager.castVariable(type.key, indexVar);
+    }
+
+    @Override
+    public VariableType getContentType() {
         return type.value;
+    }
+
+    @Override
+    public Stream<Variable> getContents() {
+        MapEntryVariable.MapEntryVariableType entryType = new MapEntryVariable.MapEntryVariableType(type.key, type.value);
+        return value.entrySet().stream().map(entry -> {
+            MapEntryVariable entryVar = new MapEntryVariable(entryType);
+            entryVar.key = entry.getKey();
+            entryVar.value = entry.getValue();
+            return entryVar;
+        });
     }
 
     public static class MapVariableType implements VariableType {
