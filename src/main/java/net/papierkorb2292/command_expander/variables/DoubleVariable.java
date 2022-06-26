@@ -48,6 +48,11 @@ public class DoubleVariable extends Variable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        return o instanceof DoubleVariable && ((DoubleVariable)o).value == value;
+    }
+
+    @Override
     public int hashCode() {
         return Double.hashCode(value);
     }

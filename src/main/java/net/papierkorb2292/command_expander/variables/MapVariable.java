@@ -64,6 +64,11 @@ public class MapVariable extends IndexableVariable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        return o instanceof MapVariable map && value.equals(map.value);
+    }
+
+    @Override
     public int hashCode() {
         return value.hashCode();
     }

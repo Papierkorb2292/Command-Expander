@@ -58,6 +58,11 @@ public class MapEntryVariable extends Variable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        return o instanceof MapEntryVariable entry && entry.key.equals(key) && entry.value.equals(value);
+    }
+
+    @Override
     public int hashCode() {
         return 0;
     }

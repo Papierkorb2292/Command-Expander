@@ -48,6 +48,11 @@ public class IntVariable extends Variable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        return o instanceof IntVariable && ((IntVariable)o).value == value;
+    }
+
+    @Override
     public int hashCode() {
         return value;
     }

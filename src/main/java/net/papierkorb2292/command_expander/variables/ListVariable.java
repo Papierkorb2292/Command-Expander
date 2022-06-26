@@ -58,6 +58,11 @@ public class ListVariable extends IndexableVariable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        return o instanceof ListVariable && value.equals(((ListVariable)o).value);
+    }
+
+    @Override
     public int hashCode() {
         return value.hashCode();
     }
