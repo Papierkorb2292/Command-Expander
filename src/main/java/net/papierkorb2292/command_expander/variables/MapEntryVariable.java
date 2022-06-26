@@ -19,8 +19,8 @@ public class MapEntryVariable extends Variable {
 
     public MapEntryVariable(MapEntryVariableType type, Variable key, Variable value) throws CommandSyntaxException  {
         this.type = type;
-        key = VariableManager.castVariable(type.key, key);
-        value = VariableManager.castVariable(type.value, value);
+        this.key = VariableManager.castVariable(type.key, key);
+        this.value = VariableManager.castVariable(type.value, value);
     }
 
     @Override
