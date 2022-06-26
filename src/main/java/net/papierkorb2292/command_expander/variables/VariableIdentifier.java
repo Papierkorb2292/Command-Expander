@@ -2,6 +2,7 @@ package net.papierkorb2292.command_expander.variables;
 
 import com.google.common.collect.ImmutableSet;
 import com.mojang.brigadier.LiteralMessage;
+import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 
@@ -38,6 +39,32 @@ public class VariableIdentifier {
         }
         namespace = "minecraft";
         path = name;
+    }
+
+    public static VariableIdentifier parse(StringReader reader) throws CommandSyntaxException {
+        if(!reader.canRead()) {
+            throw INVALID_NAME_EXCEPTION.create("minecraft", "");
+        }
+        int startIndex = reader.getCursor();
+        if(isCharInvalidFirst(reader.peek())) {
+            throw INVALID_NAME_EXCEPTION.create("minecraft", reader.read());
+        }
+        while(!isCharInvalidGeneral(reader.peek())) {
+            reader.skip();
+        }
+        String name = reader.getString().substring(startIndex, reader.getCursor());
+        if(reader.peek() == ':') {
+            reader.skip();
+            startIndex = reader.getCursor();
+            if(isCharInvalidFirst(reader.peek())) {
+                throw INVALID_NAME_EXCEPTION.create(reader.read(), name);
+            }
+            while(!isCharInvalidGeneral(reader.peek())) {
+                reader.skip();
+            }
+            return new VariableIdentifier(name, reader.getString().substring(startIndex, reader.getCursor()));
+        }
+        return new VariableIdentifier("minecraft", name);
     }
 
     @Override
