@@ -77,8 +77,21 @@ public abstract class Variable {
             // their children can be lowered
             while(loweringTypeMinDepth != 0) {
                 boolean isEqual = true;
-                VariableType first = contentType[0];
-                for(int i = 1; i < length; ++i) {
+                VariableType first = null;
+                int start;
+                for(start = 0; start < length; ++start) {
+                    first = contentType[start];
+                    if(first != null) {
+                        break;
+                    }
+                }
+                if(first == null) {
+                    return new LoweredType(null);
+                }
+                for(int i = start + 1; i < length; ++i) {
+                    if(contentType[i] == null) {
+                        continue;
+                    }
                     if(first.getTemplate() != contentType[i].getTemplate()) {
                         isEqual = false;
                     }
@@ -94,7 +107,7 @@ public abstract class Variable {
                     VariableType result = first.getTemplate().typeFactory.get();
                     for(int c = 0; c < childrenCount; ++c) {
                         for(int i = 0; i < length; ++i) {
-                            childrenType[i] = contentType[i].getChild(c);
+                            childrenType[i] = contentType[i] == null ? null : contentType[i].getChild(c);
                         }
                         LoweredType loweredChildrenType = getLoweredType(childrenType);
                         if(loweredChildrenType == null) {
@@ -124,6 +137,61 @@ public abstract class Variable {
             private LoweredType(Variable.VariableType type) {
                 this.type = type;
             }
+        }
+
+        static LoweredType getLoweredType(VariableType first, VariableType second) {
+            if(first == null) {
+                return new LoweredType(second);
+            }
+            if(second == null) {
+                return new LoweredType(first);
+            }
+            int firstLoweringTypeMinDepth = 0, secondLoweringTypeMinDepth = 0;
+            VariableType current = first;
+            while(current != null) {
+                ++firstLoweringTypeMinDepth;
+                current = current.getNextLoweredType();
+            }
+            current = second;
+            while(current != null) {
+                ++secondLoweringTypeMinDepth;
+                current = current.getNextLoweredType();
+            }
+            if(firstLoweringTypeMinDepth == 0 && secondLoweringTypeMinDepth == 0) {
+                return new LoweredType(null);
+            }
+            int loweringTypeMinDepth = firstLoweringTypeMinDepth == 0 ? secondLoweringTypeMinDepth : secondLoweringTypeMinDepth == 0 ? firstLoweringTypeMinDepth : Math.min(firstLoweringTypeMinDepth, secondLoweringTypeMinDepth);
+            for(int i = firstLoweringTypeMinDepth; i > loweringTypeMinDepth; --i) {
+                first = first.getNextLoweredType();
+            }
+            for(int i = secondLoweringTypeMinDepth; i > loweringTypeMinDepth; --i) {
+                second = second.getNextLoweredType();
+            }
+            while(loweringTypeMinDepth != 0) {
+                if(first.getTemplate() == second.getTemplate()) {
+                    int childrenCount = first.getTemplate().childrenCount;
+                    if(childrenCount == 0) {
+                        return new LoweredType(first);
+                    }
+                    VariableType result = first.getTemplate().typeFactory.get();
+                    boolean hasCompatibleChildren = true;
+                    for(int c = 0; c < childrenCount; ++c) {
+                        LoweredType loweredChildrenType = getLoweredType(first.getChild(c), second.getChild(c));
+                        if(loweredChildrenType == null) {
+                            hasCompatibleChildren = false;
+                            break;
+                        }
+                        result.setChild(c, loweredChildrenType.type);
+                    }
+                    if(hasCompatibleChildren) {
+                        return new LoweredType(result);
+                    }
+                }
+                first = first.getNextLoweredType();
+                second = second.getNextLoweredType();
+                --loweringTypeMinDepth;
+            }
+            return null;
         }
     }
 }
