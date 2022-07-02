@@ -93,6 +93,21 @@ public class MapEntryVariable extends Variable {
             return null;
         }
 
+        @Override
+        public void setChild(int index, VariableType child) {
+            if(index == 0) {
+                key = child;
+                return;
+            }
+            if(index == 1) {
+                value = child;
+            }
+        }
+
+        public VariableType getChild(int index) {
+            return index == 0 ? key : index == 1 ? value : null;
+        }
+
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(2, MapEntryVariableType::new, (type, var) -> {
             if(!(var instanceof MapEntryVariable entry)) {
                 throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("MapEntryVariable", var.getClass().getName());
