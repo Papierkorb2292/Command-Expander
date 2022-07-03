@@ -56,50 +56,51 @@ public class VariableManager {
      * @throws CommandSyntaxException Unknown type, invalid amount of children or a syntax error
      */
     public static Variable.VariableType parseType(StringReader reader) throws CommandSyntaxException {
-        StringBuilder typeBuilder = new StringBuilder();
+        int startCursor = reader.getCursor(), childrenCursor = -1;
         char c;
-        boolean encounteredChildren = false;
         while(reader.canRead()) {
-            if(reader.peek() == ',' || reader.peek() == '>') {
+            c = reader.peek();
+            if(c == ',' || c == '>' || c == ')') {
                 break;
             }
-            c = reader.read();
             if(c == '<') {
-                encounteredChildren = true;
+                childrenCursor = reader.getCursor() + 1;
                 break;
             }
             if(c == ' ') {
+                int cursor = reader.getCursor();
                 reader.skipWhitespace();
                 if(reader.peek() == '<') {
-                    encounteredChildren = true;
-                    reader.skip();
+                    reader.skipWhitespace();
+                    childrenCursor = reader.getCursor() + 1;
                 }
+                reader.setCursor(cursor);
                 break;
             }
-            typeBuilder.append(c);
+            reader.skip();
         }
-        reader.skipWhitespace();
-        String typeName = typeBuilder.toString();
+        String typeName = reader.getString().substring(startCursor, reader.getCursor());
         VariableTypeTemplate typeTemplate = TYPES_BY_STRING.get(typeName);
         if(typeTemplate == null) {
             throw UNKNOWN_TYPE_EXCEPTION.createWithContext(reader, typeName);
         }
         List<Variable.VariableType> childrenType = new ArrayList<>();
-        if(encounteredChildren) {
+        if(childrenCursor != -1) {
+            reader.setCursor(childrenCursor);
             if(reader.peek() != '>') {
                 while (reader.canRead()) {
                     reader.skipWhitespace();
                     childrenType.add(parseType(reader));
                     reader.skipWhitespace();
                     if(reader.peek() == '>') {
-                        encounteredChildren = false;
+                        childrenCursor = -1;
                         break;
                     }
                     if (reader.read() != ',') {
                         throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedSymbol().createWithContext(reader, ',');
                     }
                 }
-                if (encounteredChildren) { //No '>' found
+                if (childrenCursor != -1) { //No '>' found
                     throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedSymbol().createWithContext(reader, '>');
                 }
             }
