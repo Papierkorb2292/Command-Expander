@@ -54,7 +54,7 @@ public class MapEntryVariable extends Variable {
 
     @Override
     public VariableType getType() {
-        return null;
+        return type;
     }
 
     @Override
