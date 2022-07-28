@@ -49,17 +49,21 @@ public class VariableIdentifier {
         if(isCharInvalidFirst(reader.peek())) {
             throw INVALID_NAME_EXCEPTION.create("minecraft", reader.read());
         }
-        while(!isCharInvalidGeneral(reader.peek())) {
+        reader.skip();
+        while(reader.canRead() && !isCharInvalidGeneral(reader.peek())) {
             reader.skip();
         }
         String name = reader.getString().substring(startIndex, reader.getCursor());
-        if(reader.peek() == ':') {
+        if(reader.canRead() && reader.peek() == ':') {
             reader.skip();
+            if(!reader.canRead()) {
+                throw INVALID_NAME_EXCEPTION.create(name, "");
+            }
             startIndex = reader.getCursor();
             if(isCharInvalidFirst(reader.peek())) {
                 throw INVALID_NAME_EXCEPTION.create(reader.read(), name);
             }
-            while(!isCharInvalidGeneral(reader.peek())) {
+            while(reader.canRead() && !isCharInvalidGeneral(reader.peek())) {
                 reader.skip();
             }
             return new VariableIdentifier(name, reader.getString().substring(startIndex, reader.getCursor()));
