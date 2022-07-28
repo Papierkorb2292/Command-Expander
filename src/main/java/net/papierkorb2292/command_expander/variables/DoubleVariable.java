@@ -57,7 +57,11 @@ public class DoubleVariable extends Variable {
         return Double.hashCode(value);
     }
 
-    public static class DoubleVariableType implements VariableType {
+    public static DoubleVariable parse(String value) {
+        return new DoubleVariable(Double.parseDouble(value));
+    }
+
+    public static class DoubleVariableType implements VariableType, AddableOperatorVariableType, MultipliableOperatorVariableType, NegatableOperatorVariableType {
 
         public static final DoubleVariableType INSTANCE = new DoubleVariableType();
 

@@ -57,7 +57,52 @@ public class IntVariable extends Variable {
         return value;
     }
 
-    public static class IntVariableType implements VariableType {
+    public static IntVariable parse(String value) {
+        if(value.length() == 0) {
+            return new IntVariable(0);
+        }
+        int i = 0;
+        char c = value.charAt(0);
+        char sign = '+';
+        if(c == '+' || c == '-') {
+            sign = c;
+            c = value.charAt(1);
+            i = 1;
+        }
+        if(c == '0') {
+            c = value.charAt(i);
+            String trimmedValue = value.substring(i + 2);
+            if(sign == '-') {
+                trimmedValue = "-" + trimmedValue;
+            }
+            if(c == 'x' || c == 'X') {
+                return parseHexadecimal(trimmedValue);
+            }
+            if(c == 'b' || c == 'B') {
+                return parseBinary(trimmedValue);
+            }
+            return parseOctal(trimmedValue);
+        }
+        return parseDecimal(value);
+    }
+
+    public static IntVariable parseDecimal(String value) {
+        return new IntVariable(Integer.parseInt(value));
+    }
+
+    public static IntVariable parseHexadecimal(String value) {
+        return new IntVariable(Integer.parseInt(value, 16));
+    }
+
+    public static IntVariable parseOctal(String value) {
+        return new IntVariable(Integer.parseInt(value, 8));
+    }
+
+    public static IntVariable parseBinary(String value) {
+        return new IntVariable(Integer.parseInt(value, 2));
+    }
+
+    public static class IntVariableType implements VariableType, AddableOperatorVariableType, MultipliableOperatorVariableType, NegatableOperatorVariableType {
 
         public static final IntVariableType INSTANCE = new IntVariableType();
 
