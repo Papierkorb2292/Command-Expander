@@ -5,9 +5,6 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 
-import java.util.Iterator;
-import java.util.List;
-
 public class MapEntryVariable extends Variable {
 
     public Variable key, value;
@@ -118,32 +115,22 @@ public class MapEntryVariable extends Variable {
 
             @Override
             protected <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
-                MapVariable.MapVariableType mapType = (MapVariable.MapVariableType) type;
+                MapEntryVariable.MapEntryVariableType mapEntryType = (MapEntryVariable.MapEntryVariableType) type;
                 return ops.get(input, "keys")
-                        .flatMap(keyListElement -> decodeList(ops, keyListElement, mapType.key))
-                        .mapError(error -> "Error decoding keys of map: (" + error + ")")
-                        .flatMap(keyList -> ops.get(input, "values")
-                                .flatMap(valueListElement -> decodeList(ops, valueListElement, mapType.value))
-                                .mapError(error -> "Error decoding values of map: (" + error + ")")
-                                .flatMap(valueList -> {
-                                    List<Variable> keys = keyList.getFirst(), values = valueList.getFirst();
+                        .flatMap(keyListElement -> mapEntryType.key.getTemplate().codec.decode(ops, keyListElement, mapEntryType.key))
+                        .mapError(error -> "Error decoding key of map entry: (" + error + ")")
+                        .flatMap(key -> ops.get(input, "values")
+                                .flatMap(valueListElement -> mapEntryType.value.getTemplate().codec.decode(ops, valueListElement, mapEntryType.value))
+                                .mapError(error -> "Error decoding value of map entry: (" + error + ")")
+                                .flatMap(value -> {
                                     DataResult<T> errorElementsDataResult = ops.mapBuilder()
-                                            .add("keys", keyList.getSecond())
-                                            .add("values", valueList.getSecond())
+                                            .add("keys", key.getSecond())
+                                            .add("values", value.getSecond())
                                             .build(ops.empty());
                                     T errorElements = errorElementsDataResult.resultOrPartial(VariableManager::dumpError).orElse(null);
-                                    MapVariable result = new MapVariable(mapType);
-                                    if(keys.size() != values.size()) {
-                                        String error = "Key and value list of map had different sizes; ";
-                                        if(errorElementsDataResult.error().isPresent()) {
-                                            error += errorElementsDataResult.error().get().message() + "; ";
-                                        }
-                                        return DataResult.error(error, Pair.of(result, errorElements));
-                                    }
-                                    Iterator<Variable> keysIterator = keys.iterator(), valuesIterator = values.iterator();
-                                    while(keysIterator.hasNext()) {
-                                        result.value.put(keysIterator.next(), valuesIterator.next());
-                                    }
+                                    MapEntryVariable result = new MapEntryVariable(mapEntryType);
+                                    result.key = key.getFirst().variable;
+                                    result.value = value.getFirst().variable;
                                     return errorElementsDataResult.error().isPresent()
                                             ? DataResult.error(
                                             errorElementsDataResult.error().get().message(),
@@ -154,10 +141,10 @@ public class MapEntryVariable extends Variable {
 
             @Override
             protected <T> DataResult<T> write(Variable input, DynamicOps<T> ops, T prefix) {
-                MapVariable map = (MapVariable) input;
+                MapEntryVariable entry = (MapEntryVariable) input;
                 return ops.mapBuilder()
-                        .add("keys", encodeList(((MapVariable) input).value.keySet().stream().toList(), ops, ops.empty(), map.type.key).mapError(error -> "Error encoding keys of map: (" + error + ")"))
-                        .add("values", encodeList(((MapVariable) input).value.values().stream().toList(), ops, ops.empty(), map.type.value).mapError(error -> "Error encoding values of map: (" + error + ")"))
+                        .add("keys", entry.type.key.getTemplate().codec.encode(entry.key, ops, ops.empty()).mapError(error -> "Error encoding key of map entry: (" + error + ")"))
+                        .add("values", entry.type.value.getTemplate().codec.encode(entry.value, ops, ops.empty()).mapError(error -> "Error encoding values of map entry: (" + error + ")"))
                         .build(prefix);
             }
         });
