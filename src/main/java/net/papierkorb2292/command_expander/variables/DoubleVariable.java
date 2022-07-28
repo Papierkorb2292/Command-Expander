@@ -42,7 +42,7 @@ public class DoubleVariable extends Variable {
 
     @Override
     public String stringValue() {
-        return String.valueOf(value);
+        return String.valueOf(value) + 'd';
     }
 
     @Override
