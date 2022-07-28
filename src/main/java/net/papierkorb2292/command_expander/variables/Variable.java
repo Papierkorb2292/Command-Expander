@@ -193,5 +193,30 @@ public abstract class Variable {
             }
             return null;
         }
+
+        default boolean instanceOf(VariableType type) {
+            if(type == null) {
+                return true;
+            }
+            VariableType current = this;
+            VariableTypeTemplate template = type.getTemplate();
+            while(current != null) {
+                if(current.getTemplate() == template) {
+                    boolean childrenMatch = true;
+                    for(int i = 0; i < template.childrenCount; ++i) {
+                        if(!current.getChild(i).instanceOf(type.getChild(i))) {
+                            childrenMatch = false;
+                            break;
+                        }
+                    }
+                    if(childrenMatch) {
+                        return true;
+                    }
+                }
+                current = current.getNextLoweredType();
+            }
+            return false;
+
+        }
     }
 }
