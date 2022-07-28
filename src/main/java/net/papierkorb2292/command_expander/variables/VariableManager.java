@@ -55,7 +55,7 @@ public class VariableManager {
      * Parses a VariableType tree from a string, example: "map&lt;int, list&lt;int&gt;&gt;"
      * @throws CommandSyntaxException Unknown type, invalid amount of children or a syntax error
      */
-    public static Variable.VariableType parseType(StringReader reader) throws CommandSyntaxException {
+    public static Variable.VariableType parseType(StringReader reader, boolean allowNull) throws CommandSyntaxException {
         int startCursor = reader.getCursor(), childrenCursor = -1;
         char c;
         while(reader.canRead()) {
@@ -80,6 +80,9 @@ public class VariableManager {
             reader.skip();
         }
         String typeName = reader.getString().substring(startCursor, reader.getCursor());
+        if(allowNull && typeName.equals("null")) {
+            return null;
+        }
         VariableTypeTemplate typeTemplate = TYPES_BY_STRING.get(typeName);
         if(typeTemplate == null) {
             throw UNKNOWN_TYPE_EXCEPTION.createWithContext(reader, typeName);
@@ -90,7 +93,7 @@ public class VariableManager {
             if(reader.peek() != '>') {
                 while (reader.canRead()) {
                     reader.skipWhitespace();
-                    childrenType.add(parseType(reader));
+                    childrenType.add(parseType(reader, allowNull));
                     reader.skipWhitespace();
                     if(reader.peek() == '>') {
                         childrenCursor = -1;
@@ -118,6 +121,9 @@ public class VariableManager {
     }
 
     public static Variable castVariable(Variable.VariableType type, Variable value) throws CommandSyntaxException {
+        if(type == null) {
+            return value;
+        }
         return type.getTemplate().caster.cast(type, value);
     }
 

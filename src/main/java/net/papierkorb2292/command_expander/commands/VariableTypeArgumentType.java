@@ -19,8 +19,14 @@ public class VariableTypeArgumentType implements ArgumentType<Variable.VariableT
 
     private static final Collection<String> EXAMPLES = Arrays.asList("int", "list<float>", "map<entity, list<double>>");
 
-    public static VariableTypeArgumentType variableType() {
-        return new VariableTypeArgumentType();
+    private final boolean allowNull;
+
+    public VariableTypeArgumentType(boolean allowNull) {
+        this.allowNull = allowNull;
+    }
+
+    public static VariableTypeArgumentType variableType(boolean allowNull) {
+        return new VariableTypeArgumentType(allowNull);
     }
 
     public static Variable.VariableType getType(CommandContext<ServerCommandSource> context, String name) {
@@ -29,14 +35,14 @@ public class VariableTypeArgumentType implements ArgumentType<Variable.VariableT
 
     @Override
     public Variable.VariableType parse(StringReader reader) throws CommandSyntaxException {
-        return VariableManager.parseType(reader);
+        return VariableManager.parseType(reader, allowNull);
     }
 
     @Override
     public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
         parseTypeSuggestions(
                 new StringReader(builder.getRemainingLowerCase()),
-                new StringBuilder(), new StringBuilder(),
+                new StringBuilder(),
                 builder, false);
         return builder.buildFuture();
     }
@@ -44,22 +50,25 @@ public class VariableTypeArgumentType implements ArgumentType<Variable.VariableT
     /**
      * @see VariableManager#parseType
      */
-    private boolean parseTypeSuggestions(StringReader reader, StringBuilder completedNames, StringBuilder currentName, SuggestionsBuilder builder, boolean appendComma) {
-        currentName.setLength(0);
+    private boolean parseTypeSuggestions(StringReader reader, StringBuilder completedNames, SuggestionsBuilder builder, boolean appendComma) {
+        int currentStartCursor = reader.getCursor(), endCursor = -1;
         char c;
         boolean encounteredChildren = false, isComplete = false;
         while(reader.canRead()) {
             if(reader.peek() == ',' || reader.peek() == '>') {
+                endCursor = reader.getCursor();
                 isComplete = true;
                 break;
             }
             c = reader.read();
             if(c == '<') {
+                endCursor = reader.getCursor() - 1;
                 encounteredChildren = true;
                 isComplete = true;
                 break;
             }
             if(c == ' ') {
+                endCursor = reader.getCursor() - 1;
                 isComplete = true;
                 reader.skipWhitespace();
                 if(reader.canRead() && reader.peek() == '<') {
@@ -68,11 +77,10 @@ public class VariableTypeArgumentType implements ArgumentType<Variable.VariableT
                 }
                 break;
             }
-            currentName.append(c);
         }
         reader.skipWhitespace();
         if(!isComplete) {
-            String previous = completedNames.toString(), current = currentName.toString();
+            String previous = completedNames.toString(), current = reader.getString().substring(currentStartCursor, reader.getCursor());
             boolean foundMatch = false;
             for(String type : VariableManager.getTypes()) {
                 if(type.equals(current)) {
@@ -97,10 +105,10 @@ public class VariableTypeArgumentType implements ArgumentType<Variable.VariableT
             }
             return !foundMatch;
         }
-        String typeName = currentName.toString();
+        String typeName = reader.getString().substring(currentStartCursor, endCursor);
         VariableTypeTemplate typeTemplate = VariableManager.getType(typeName);
         if(typeTemplate == null) {
-            return true;
+            return !allowNull;
         }
         boolean hasChildren = typeTemplate.childrenCount != 0;
         completedNames.append(typeName);
@@ -109,7 +117,7 @@ public class VariableTypeArgumentType implements ArgumentType<Variable.VariableT
             for(int i = 0; i < typeTemplate.childrenCount; ++i) {
                 boolean isEnd = i == typeTemplate.childrenCount - 1;
                 reader.skipWhitespace();
-                if(parseTypeSuggestions(reader, completedNames, currentName, builder, !isEnd)) {
+                if(parseTypeSuggestions(reader, completedNames, builder, !isEnd)) {
                     return true;
                 }
                 reader.skipWhitespace();
