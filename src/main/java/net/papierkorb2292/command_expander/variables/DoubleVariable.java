@@ -80,7 +80,7 @@ public class DoubleVariable extends Variable {
         }
 
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(
-                0, () -> IntVariable.IntVariableType.INSTANCE,
+                0, () -> DoubleVariableType.INSTANCE,
                 (type, var) -> new DoubleVariable(var.doubleValue()),
                 new VariableCodec() {
 
