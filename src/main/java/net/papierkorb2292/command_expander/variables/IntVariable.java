@@ -117,7 +117,7 @@ public class IntVariable extends Variable {
 
         @Override
         public VariableType getNextLoweredType() {
-            return DoubleVariable.DoubleVariableType.INSTANCE; //TODO: Change to long
+            return LongVariable.LongVariableType.INSTANCE;
         }
 
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(

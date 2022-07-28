@@ -381,6 +381,8 @@ public class VariableManager {
         registerType("map", MapVariable.MapVariableType.class, MapVariable.MapVariableType.TEMPLATE);
         registerType("double", DoubleVariable.DoubleVariableType.class, DoubleVariable.DoubleVariableType.TEMPLATE);
         registerType("entry", MapEntryVariable.MapEntryVariableType.class, MapEntryVariable.MapEntryVariableType.TEMPLATE);
+        registerType("long", LongVariable.LongVariableType.class, LongVariable.LongVariableType.TEMPLATE);
+        registerType("entity", EntityVariable.EntityVariableType.class, EntityVariable.EntityVariableType.TEMPLATE);
     }
 
     public static void dumpError(String error) { }
