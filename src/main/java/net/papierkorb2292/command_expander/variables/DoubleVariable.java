@@ -3,6 +3,9 @@ package net.papierkorb2292.command_expander.variables;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.papierkorb2292.command_expander.variables.immediate.operator.AddableOperatorVariableType;
+import net.papierkorb2292.command_expander.variables.immediate.operator.MultipliableOperatorVariableType;
+import net.papierkorb2292.command_expander.variables.immediate.operator.NegatableOperatorVariableType;
 
 public class DoubleVariable extends Variable {
 
@@ -94,5 +97,20 @@ public class DoubleVariable extends Variable {
                         return ops.getNumberValue(input).map(value -> Pair.of(new DoubleVariable(value.doubleValue()), ops.empty()));
                     }
                 });
+
+        @Override
+        public Variable addVariables(Variable left, Variable right) {
+            return new DoubleVariable(left.doubleValue() + right.doubleValue());
+        }
+
+        @Override
+        public Variable multiplyVariables(Variable left, Variable right) {
+            return new DoubleVariable(left.doubleValue() * right.doubleValue());
+        }
+
+        @Override
+        public Variable negateVariable(Variable value) {
+            return new DoubleVariable(-value.doubleValue());
+        }
     }
 }

@@ -143,7 +143,7 @@ public class ListVariable extends IndexableVariable {
         return value.stream();
     }
 
-    public static class ListVariableType implements VariableType {
+    public static class ListVariableType implements VariableType, AddableOperatorVariableType {
 
         public VariableType content;
 
@@ -249,5 +249,16 @@ public class ListVariable extends IndexableVariable {
                                 }));
             }
         });
+
+        @Override
+        public Variable addVariables(Variable left, Variable right) {
+            if(!(left instanceof ListVariable && right instanceof ListVariable)) {
+                return null;
+            }
+            ListVariable result = new ListVariable((ListVariableType)left.getType());
+            result.value.addAll(((ListVariable)left).value);
+            result.value.addAll(((ListVariable)right).value);
+            return result;
+        }
     }
 }

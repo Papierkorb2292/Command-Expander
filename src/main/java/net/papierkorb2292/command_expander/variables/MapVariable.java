@@ -4,6 +4,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.papierkorb2292.command_expander.variables.immediate.operator.AddableOperatorVariableType;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -134,7 +135,7 @@ public class MapVariable extends IndexableVariable {
         });
     }
 
-    public static class MapVariableType implements VariableType {
+    public static class MapVariableType implements VariableType, AddableOperatorVariableType {
 
         public VariableType key;
         public VariableType value;
@@ -234,5 +235,16 @@ public class MapVariable extends IndexableVariable {
                         .build(prefix);
             }
         });
+
+        @Override
+        public Variable addVariables(Variable left, Variable right) {
+            if(!(left instanceof MapVariable && right instanceof MapVariable)) {
+                return null;
+            }
+            MapVariable result = new MapVariable(this);
+            result.value.putAll(((MapVariable)left).value);
+            result.value.putAll(((MapVariable)right).value);
+            return result;
+        }
     }
 }
