@@ -1,5 +1,7 @@
 package net.papierkorb2292.command_expander.variables;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
 public abstract class Variable {
 
     public abstract int intValue();
@@ -27,6 +29,18 @@ public abstract class Variable {
 
     @Override
     public abstract int hashCode();
+
+    public boolean lowerAndEquals(Variable other) {
+        VariableType.LoweredType type = VariableType.getLoweredType(getType(), other.getType());
+        if(type == null) {
+            return false;
+        }
+        try {
+            return VariableManager.castVariable(type.type, this).equals(VariableManager.castVariable(type.type, other));
+        } catch (CommandSyntaxException e) {
+            return false;
+        }
+    }
 
     public interface VariableType {
 
