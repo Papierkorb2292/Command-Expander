@@ -11,10 +11,6 @@ import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.LiteralText;
-import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.PersistentStateManager;
 import net.papierkorb2292.command_expander.CommandExpander;
@@ -23,7 +19,6 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class VariableManager {
@@ -143,12 +138,19 @@ public class VariableManager {
         return state.get(id.path);
     }
 
-    public int getReadonly(VariableIdentifier id, Consumer<Text> valueConsumer) throws CommandSyntaxException {
+    /**
+     * Loads and gets a variable, but doesn't mark it dirty, so changes are
+     * not saved unless {@link #get} is used with the same id
+     * @param id The id of the variable to load and get
+     * @return The value of the variable
+     * @throws CommandSyntaxException The variable wasn't found or an error happened when loading it
+     */
+    public TypedVariable getReadonly(VariableIdentifier id) throws CommandSyntaxException {
         PersistentState state = stateManager.get(data -> createPersistentState(data, id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace);
         if(state == null) {
             throw VARIABLE_NOT_FOUND_EXCEPTION.create(id);
         }
-        return state.getReadonly(id.path, valueConsumer);
+        return state.getReadonly(id.path);
     }
 
     public void add(VariableIdentifier id, Variable.VariableType type) throws CommandSyntaxException {
@@ -321,22 +323,8 @@ public class VariableManager {
             return getOrLoad(name);
         }
 
-        public int getReadonly(String name, Consumer<Text> valueConsumer) throws CommandSyntaxException {
-            Variable var = getOrLoad(name).var;
-            if(var == null) {
-                valueConsumer.accept(buildCopyableText("null"));
-                return 0;
-            }
-            valueConsumer.accept(buildCopyableText(var.stringValue()));
-            return var.intValue();
-        }
-
-        private Text buildCopyableText(String text) {
-            return new LiteralText(text).styled(style ->
-                    style.withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, text))
-                            .withUnderline(true)
-                            .withColor(0x55FF55)
-                            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.of("Click to copy"))));
+        public TypedVariable getReadonly(String name) throws CommandSyntaxException {
+            return getOrLoad(name);
         }
 
         public Stream<VariableIdentifier> getIds() {

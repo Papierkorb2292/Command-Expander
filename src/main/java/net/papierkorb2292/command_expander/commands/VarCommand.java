@@ -4,11 +4,10 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
-import net.papierkorb2292.command_expander.mixin_method_interfaces.VariableManagerContainer;
+import net.papierkorb2292.command_expander.CommandExpander;
+import net.papierkorb2292.command_expander.variables.Variable;
 import net.papierkorb2292.command_expander.variables.VariableIdentifier;
-import net.papierkorb2292.command_expander.variables.VariableManager;
 
 public class VarCommand {
 
@@ -17,10 +16,10 @@ public class VarCommand {
                 CommandManager.literal("var")
                         .then(CommandManager.literal("add")
                                 .then(CommandManager.argument("id", VariableNameArgumentType.variableName(false))
-                                        .then(CommandManager.argument("type", VariableTypeArgumentType.variableType())
+                                        .then(CommandManager.argument("type", VariableTypeArgumentType.variableType(false))
                                                 .executes(context -> {
                                                     VariableIdentifier id = VariableNameArgumentType.getVariableName(context, "id");
-                                                        getVariableManager(context).add(
+                                                        CommandExpander.getVariableManager(context).add(
                                                                 id,
                                                                 VariableTypeArgumentType.getType(context, "type"));
                                                     context.getSource().sendFeedback(Text.of(String.format("Successfully added variable '%s'", id)), true);
@@ -29,24 +28,46 @@ public class VarCommand {
                         )
                         .then(
                                 CommandManager.literal("remove")
-                                        .then(CommandManager.argument("id", VariableNameArgumentType.variableName(true))
+                                        .then(CommandManager.argument("id", VariablePathArgumentType.variablePath())
                                             .executes(context -> {
-                                                VariableIdentifier id = VariableNameArgumentType.getVariableName(context, "id");
-                                                getVariableManager(context).remove(id);
-                                                context.getSource().sendFeedback(Text.of(String.format("Successfully removed variable '%s'", id)), true);
-                                                return 1;
+                                                int result = VariablePathArgumentType.getVariablePath(context, "id").remove(context);
+                                                context.getSource().sendFeedback(Text.of(String.format("Successfully removed %s %s", result, result == 1 ? "variable" : "variables")), true);
+                                                return result;
                                             })))
                         .then(
-                                CommandManager.literal("get") //TODO: Replace variable id with immediate value
-                                        .then(CommandManager.argument("id", VariableNameArgumentType.variableName(true))
-                                            .executes(context -> {
-                                                VariableIdentifier id = VariableNameArgumentType.getVariableName(context, "id");
-                                                return getVariableManager(context).getReadonly(id, value -> context.getSource().sendFeedback(new LiteralText(String.format("Variable '%s' contains the following value: ", id)).append(value), true));
-                                            }
-                                ))));
+                                CommandManager.literal("get")
+                                        .then(CommandManager.argument("value", VariableImmediateValueArgumentType.variableImmediateValue())
+                                                .executes(context ->
+                                                        VariableImmediateValueArgumentType.getImmediateValue(context, "value").calculate(context).map(
+                                                            holder -> {
+                                                                Variable var = holder.variable;
+                                                                sendGetFeedback(context, var);
+                                                                return var == null ? 0 : var.intValue();
+                                                            },
+                                                            stream -> stream.mapToInt(var -> {
+                                                                sendGetFeedback(context, var);
+                                                                return var == null ? 0 : var.intValue();
+                                                            }).sum()
+                                                )
+                                )))
+                        .then(
+                                CommandManager.literal("set")
+                                        .then(CommandManager.argument("id", VariablePathArgumentType.variablePath())
+                                                .then(CommandManager.argument("value", VariableImmediateValueArgumentType.variableImmediateValue())
+                                                        .executes(context -> {
+                                                            int result = VariablePathArgumentType.getVariablePath(context, "id")
+                                                                    .set(
+                                                                            VariableImmediateValueArgumentType.getImmediateValue(context, "value").calculate(context),
+                                                                            context);
+                                                            context.getSource().sendFeedback(Text.of(String.format("Successfully set %s %s", result, result == 1 ? "variable" : "variables")), true);
+                                                            return result;
+                                                        })))
+                        ));
     }
 
-    private static VariableManager getVariableManager(CommandContext<ServerCommandSource> context) {
-        return ((VariableManagerContainer)context.getSource().getServer()).command_expander$getVariableManager();
+    private static final Text GET_FEEDBACK = Text.of("Variable has the following value: ");
+
+    private static void sendGetFeedback(CommandContext<ServerCommandSource> cc, Variable var) {
+        cc.getSource().sendFeedback(GET_FEEDBACK.copy().append(CommandExpander.buildCopyableText(var == null ? "null" : var.stringValue())), false);
     }
 }
