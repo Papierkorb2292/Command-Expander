@@ -3,6 +3,7 @@ package net.papierkorb2292.command_expander.variables;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.papierkorb2292.command_expander.variables.immediate.operator.AddableOperatorVariableType;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -89,28 +90,47 @@ public class ListVariable extends IndexableVariable {
     }
 
     @Override
-    public void set(Variable indexVar, Variable value) {
+    public boolean set(Variable indexVar, Variable value) {
         int index = indexVar.intValue();
         if(index >= 0 && index < this.value.size()) {
-            this.value.set(index, value);
+            Variable prev = this.value.set(index, value);
+            return prev == null || !prev.equals(value);
         }
+        return false;
     }
 
     @Override
-    public void remove(Variable indexVar) {
+    public boolean remove(Variable indexVar) {
         int index = indexVar.intValue(), lastIndex = value.size() - 1;
         if(index >= 0 && index < lastIndex) {
             value.set(index, null);
-            return;
+            return true;
         }
         if(index == lastIndex) {
             value.remove(lastIndex);
+            return true;
         }
+        return false;
     }
 
     @Override
     public Variable ensureIndexCompatible(Variable indexVar) {
         return indexVar;
+    }
+
+    @Override
+    public int clear() {
+        int size = value.size();
+        value.clear();
+        return size;
+    }
+
+    @Override
+    public int setAll(Variable value) {
+        for(int i = 0; i < this.value.size(); ++i) {
+            this.value.set(i, value);
+        }
+        return this.value.size();
     }
 
     @Override
@@ -162,9 +182,13 @@ public class ListVariable extends IndexableVariable {
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(1, ListVariable.ListVariableType::new, (type, var) -> {
             ListVariable.ListVariableType listType = (ListVariable.ListVariableType)type;
             Variable.VariableType childrenType = listType.content;
-            VariableManager.Caster childrenCaster = childrenType.getTemplate().caster;
+            boolean nullType = childrenType == null;
+            VariableManager.Caster childrenCaster = nullType ? null : childrenType.getTemplate().caster;
             if(var instanceof MapVariable map) {
                 MapEntryVariable.MapEntryVariableType mapEntryType = (MapEntryVariable.MapEntryVariableType)map.getType().getNextLoweredType().getChild(0);
+                if(nullType) {
+                    childrenCaster = mapEntryType.getTemplate().caster;
+                }
                 Variable[] castedChildren = new Variable[map.value.size()];
                 Iterator<Variable> keys = map.value.keySet().iterator(), values = map.value.values().iterator();
                 MapEntryVariable entry = new MapEntryVariable(mapEntryType);
@@ -179,6 +203,9 @@ public class ListVariable extends IndexableVariable {
             }
             if(!(var instanceof ListVariable list)) {
                 throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("ListVariable", var.getClass().getName());
+            }
+            if(nullType) {
+                childrenCaster = list.getType().getChild(0).getTemplate().caster;
             }
             Variable[] castedChildren = new Variable[list.value.size()];
             for(int i = 0; i < castedChildren.length; ++i) {

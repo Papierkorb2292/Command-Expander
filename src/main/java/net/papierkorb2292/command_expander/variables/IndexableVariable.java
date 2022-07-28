@@ -12,9 +12,11 @@ public abstract class IndexableVariable extends Variable {
      * @return whether the index existed already
      */
     public abstract boolean ensureIndexExists(Variable indexVar);
-    public abstract void set(Variable indexVar, Variable value);
-    public abstract void remove(Variable indexVar);
+    public abstract boolean set(Variable indexVar, Variable value);
+    public abstract boolean remove(Variable indexVar);
     public abstract Variable ensureIndexCompatible(Variable indexVar) throws CommandSyntaxException;
+    public abstract int clear();
+    public abstract int setAll(Variable value);
 
     public abstract VariableType getContentType();
     public abstract Stream<Variable> getContents();
@@ -28,8 +30,8 @@ public abstract class IndexableVariable extends Variable {
         return value;
     }
 
-    public void ensureIndexAndSet(Variable indexVar, Variable value) {
+    public boolean ensureIndexAndSet(Variable indexVar, Variable value) {
         ensureIndexExists(indexVar);
-        set(indexVar, value);
+        return set(indexVar, value);
     }
 }

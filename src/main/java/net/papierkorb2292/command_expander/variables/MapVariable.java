@@ -68,6 +68,10 @@ public class MapVariable extends IndexableVariable {
         return o instanceof MapVariable map && value.equals(map.value);
     }
 
+    public boolean existingKeysMatch(MapVariable other) {
+        return value.entrySet().stream().allMatch(entry -> other.value.containsKey(entry.getKey()) && other.value.get(entry.getKey()).equals(entry.getValue()));
+    }
+
     @Override
     public int hashCode() {
         return value.hashCode();
@@ -84,18 +88,34 @@ public class MapVariable extends IndexableVariable {
     }
 
     @Override
-    public void set(Variable indexVar, Variable value) {
-        this.value.put(indexVar, value);
+    public boolean set(Variable indexVar, Variable value) {
+        Variable prev = this.value.put(indexVar, value);
+        return prev == null || !prev.equals(value);
     }
 
     @Override
-    public void remove(Variable indexVar) {
+    public boolean remove(Variable indexVar) {
+        boolean contained = value.containsKey(indexVar);
         value.remove(indexVar);
+        return contained;
     }
 
     @Override
     public Variable ensureIndexCompatible(Variable indexVar) throws CommandSyntaxException {
         return VariableManager.castVariable(type.key, indexVar);
+    }
+
+    @Override
+    public int clear() {
+        int size = value.size();
+        value.clear();
+        return size;
+    }
+
+    @Override
+    public int setAll(Variable value) {
+        this.value.replaceAll((k, v) -> value);
+        return this.value.size();
     }
 
     @Override
@@ -161,7 +181,7 @@ public class MapVariable extends IndexableVariable {
             }
             MapVariable.MapVariableType mapType = (MapVariable.MapVariableType)type;
             Variable.VariableType keyType = mapType.key, valueType = mapType.value;
-            VariableManager.Caster keyCaster = keyType.getTemplate().caster, valueCaster = valueType.getTemplate().caster;
+            VariableManager.Caster keyCaster = (keyType == null ? map.type.key : keyType).getTemplate().caster, valueCaster = (valueType == null ? map.type.value : valueType).getTemplate().caster;
             MapVariable result = new MapVariable(mapType);
             for(Map.Entry<Variable, Variable> entry : map.value.entrySet()) {
                 result.value.put(keyCaster.cast(keyType, entry.getKey()), valueCaster.cast(valueType, entry.getValue()));
