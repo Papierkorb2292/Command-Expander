@@ -1,10 +1,16 @@
-# TODO!
-# Fabric Example Mod
+# Command Expander
 
-## Setup
+This is a Minecraft mod adding various features to the command system that would make a good addition to the vanilla game.
+All features will be toggleable, so the game can stay as vanilla as you like.
 
-For setup instructions please see the [fabric wiki page](https://fabricmc.net/wiki/tutorial:setup) that relates to the IDE that you are using.
+## Current features
 
-## License
+## Planned features
 
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+- In-game datapack editor
+- Commnad optimizations
+- Function constants
+
+## Features currently in development
+
+- Variables
