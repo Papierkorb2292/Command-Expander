@@ -135,6 +135,11 @@ public class MapVariable extends IndexableVariable {
         });
     }
 
+    @Override
+    public Stream<Variable> getIndices() {
+        return value.keySet().stream();
+    }
+
     public static class MapVariableType implements VariableType, AddableOperatorVariableType {
 
         public VariableType key;

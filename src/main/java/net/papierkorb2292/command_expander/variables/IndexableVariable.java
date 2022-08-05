@@ -21,7 +21,13 @@ public abstract class IndexableVariable extends Variable {
     public abstract VariableType getContentType();
     public abstract Stream<Variable> getContents();
 
-    public Variable ensureIndexAndGet(Variable indexVar) {
+    /**
+     * @return All indices used by variable. The indices should be different instances whose value isn't changed, so that they can be saved.
+     */
+    public abstract Stream<Variable> getIndices();
+
+    public Variable ensureIndexAndGet(Variable indexVar) throws CommandSyntaxException {
+        indexVar = ensureIndexCompatible(indexVar);
         if (ensureIndexExists(indexVar)) {
             return get(indexVar);
         }
@@ -30,7 +36,8 @@ public abstract class IndexableVariable extends Variable {
         return value;
     }
 
-    public boolean ensureIndexAndSet(Variable indexVar, Variable value) {
+    public boolean ensureIndexAndSet(Variable indexVar, Variable value) throws CommandSyntaxException {
+        indexVar = ensureIndexCompatible(indexVar);
         ensureIndexExists(indexVar);
         return set(indexVar, value);
     }

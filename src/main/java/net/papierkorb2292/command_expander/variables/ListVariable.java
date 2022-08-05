@@ -6,6 +6,7 @@ import com.mojang.serialization.DynamicOps;
 import net.papierkorb2292.command_expander.variables.immediate.operator.AddableOperatorVariableType;
 
 import java.util.*;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class ListVariable extends IndexableVariable {
@@ -141,6 +142,11 @@ public class ListVariable extends IndexableVariable {
     @Override
     public Stream<Variable> getContents() {
         return value.stream();
+    }
+
+    @Override
+    public Stream<Variable> getIndices() {
+        return IntStream.range(0, value.size()).mapToObj(IntVariable::new);
     }
 
     public static class ListVariableType implements VariableType, AddableOperatorVariableType {
