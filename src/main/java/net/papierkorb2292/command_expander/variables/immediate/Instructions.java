@@ -422,8 +422,7 @@ public class Instructions {
 
         @Override
         public void apply(CalculationContext context) throws CommandSyntaxException {
-            //TODO: Prevent marking dirty
-            context.stack().push(Either.left(new VariableHolder(((VariableManagerContainer)context.commandContext().getSource().getServer()).command_expander$getVariableManager().get(id).var)));
+            context.stack().push(Either.left(new VariableHolder(((VariableManagerContainer)context.commandContext().getSource().getServer()).command_expander$getVariableManager().getReadonly(id).var)));
         }
     }
 
