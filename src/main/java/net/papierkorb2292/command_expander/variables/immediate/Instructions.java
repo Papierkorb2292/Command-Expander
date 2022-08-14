@@ -444,6 +444,15 @@ public class Instructions {
 
         @Override
         public void apply(CalculationContext context) throws CommandSyntaxException {
+            if(entitySelector.getLimit() == 1) {
+                context.stack().push(Either.left(
+                        new VariableHolder(
+                                new EntityVariable(
+                                        entitySelector.getEntity(context.commandContext().getSource())
+                                                .getUuid()))
+                ));
+                return;
+            }
             context.stack().push(Either.right(
                     entitySelector.getEntities(context.commandContext().getSource())
                             .stream().map(entity ->
