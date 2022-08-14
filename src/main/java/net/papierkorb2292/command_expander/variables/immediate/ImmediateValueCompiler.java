@@ -230,6 +230,8 @@ public class ImmediateValueCompiler {
                     reader.skipWhitespace();
                 }
                 reader.expect('}');
+            } else {
+                reader.skip();
             }
             // If the map is empty, length is still 0
             instructionIndex += addedInstructions;
