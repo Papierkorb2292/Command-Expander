@@ -16,28 +16,28 @@ public class MapEntryVariable extends Variable {
 
     public MapEntryVariable(MapEntryVariableType type, Variable key, Variable value) throws CommandSyntaxException  {
         this.type = type;
-        this.key = VariableManager.castVariable(type.key == null ? key.getType() : type.key, key);
-        this.value = VariableManager.castVariable(type.value == null ? value.getType() : type.value, value);
+        this.key = VariableManager.castVariable(type.key, key);
+        this.value = VariableManager.castVariable(type.value, value);
     }
 
     @Override
     public int intValue() {
-        return value.intValue();
+        return value == null ? 0 : value.intValue();
     }
 
     @Override
     public long longValue() {
-        return value.longValue();
+        return value == null ? 0 : value.longValue();
     }
 
     @Override
     public float floatValue() {
-        return value.floatValue();
+        return value == null ? 0 : value.floatValue();
     }
 
     @Override
     public double doubleValue() {
-        return value.doubleValue();
+        return value == null ? 0 : value.doubleValue();
     }
 
     @Override
@@ -110,6 +110,24 @@ public class MapEntryVariable extends Variable {
                 throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("MapEntryVariable", var.getClass().getName());
             }
             MapEntryVariableType entryType = (MapEntryVariableType)type;
+            if(entryType.key == null || entryType.value == null) {
+                VariableType keyType = entryType.key, valueType = entryType.value;
+                entryType = new MapEntryVariableType();
+                if(keyType == null) {
+                    keyType = entry.type.key;
+                    if(keyType == null && entry.key != null) {
+                        throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                    }
+                }
+                entryType.key = keyType;
+                if(valueType == null) {
+                    valueType = entry.type.value;
+                    if(valueType == null && entry.value != null) {
+                        throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                    }
+                }
+                entryType.value = valueType;
+            }
             return new MapEntryVariable(entryType, entry.key, entry.value);
         }, new VariableCodec() {
 

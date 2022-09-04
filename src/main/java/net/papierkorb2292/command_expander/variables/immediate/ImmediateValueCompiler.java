@@ -249,6 +249,14 @@ public class ImmediateValueCompiler {
                 } else if(c == '@') {
                     // The value is an entity selector
                     instructions.add(instructionIndex, Instructions.getLoadFromEntitySelector(new EntitySelectorReader(reader).read()));
+                } else if(
+                        c == 'n' &&
+                        reader.canRead(4) &&
+                        reader.getString().startsWith("null", reader.getCursor()) && (
+                            !reader.canRead() || //The name might just start with null, like "null_"
+                            VariableIdentifier.isCharInvalidGeneral(reader.peek(4)))) {
+                    reader.setCursor(reader.getCursor() + 4);
+                    instructions.add(instructionIndex, Instructions.getLoadConstant(null));
                 } else {
                     // The value is either a variable or function
                     VariableIdentifier identifier = VariableIdentifier.parse(reader);

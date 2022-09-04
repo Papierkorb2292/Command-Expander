@@ -43,11 +43,12 @@ public class ListVariable extends IndexableVariable {
         StringBuilder sb = new StringBuilder();
         sb.append("{ ");
         if(value.size() > 0) {
-            sb.append(value.get(0).stringValue());
+            Variable var = value.get(0);
+            sb.append(var == null ? "null" : var.stringValue());
             for(int i = 1; i < value.size(); ++i) {
                 sb.append(", ");
-                Variable var = value.get(i);
-                sb.append(var == null ? "null" : value.get(i).stringValue());
+                var = value.get(i);
+                sb.append(var == null ? "null" : var.stringValue());
             }
         }
         sb.append(" }");
@@ -193,6 +194,8 @@ public class ListVariable extends IndexableVariable {
             if(var instanceof MapVariable map) {
                 MapEntryVariable.MapEntryVariableType mapEntryType = (MapEntryVariable.MapEntryVariableType)map.getType().getNextLoweredType().getChild(0);
                 if(nullType) {
+                    listType = new ListVariableType(mapEntryType);
+                    childrenType = mapEntryType;
                     childrenCaster = mapEntryType.getTemplate().caster;
                 }
                 Variable[] castedChildren = new Variable[map.value.size()];
@@ -211,11 +214,20 @@ public class ListVariable extends IndexableVariable {
                 throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("ListVariable", var.getClass().getName());
             }
             if(nullType) {
-                childrenCaster = list.getType().getChild(0).getTemplate().caster;
+                VariableType originalChildType = list.type.content;
+                listType = new ListVariableType(originalChildType);
+                childrenCaster = originalChildType == null ? null : originalChildType.getTemplate().caster;
             }
             Variable[] castedChildren = new Variable[list.value.size()];
             for(int i = 0; i < castedChildren.length; ++i) {
-                castedChildren[i] = childrenCaster.cast(childrenType, list.value.get(i));
+                Variable value = list.value.get(i);
+                if(value != null) {
+                    if(childrenCaster == null) {
+                        throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                    }
+                    value = childrenCaster.cast(childrenType, value);
+                }
+                castedChildren[i] = value;
             }
             ListVariable result = new ListVariable(listType);
             result.value.addAll(Arrays.asList(castedChildren));

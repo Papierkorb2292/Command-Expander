@@ -130,7 +130,7 @@ public class Instructions {
         @Override
         public void apply(CalculationContext context) {
             applyToTwoParameters(context, (key, value) -> {
-                MapEntryVariable result = new MapEntryVariable(new MapEntryVariable.MapEntryVariableType(key.getType(), value.getType()));
+                MapEntryVariable result = new MapEntryVariable(new MapEntryVariable.MapEntryVariableType(key == null ? null : key.getType(), value == null ? null : value.getType()));
                 result.key = key;
                 result.value = value;
                 return result;
@@ -280,7 +280,8 @@ public class Instructions {
             if(!hasIterator) {
                 for(int i = 0; i < length; ++i) {
                     //noinspection OptionalGetWithoutIsPresent
-                    contentTypes[i] = content.get(i).left().get().variable.getType();
+                    Variable var = content.get(i).left().get().variable;
+                    contentTypes[i] = var == null ? null : var.getType();
                 }
                 Variable.VariableType.LoweredType loweredContentType = Variable.VariableType.getLoweredType(contentTypes);
                 if(loweredContentType == null) {

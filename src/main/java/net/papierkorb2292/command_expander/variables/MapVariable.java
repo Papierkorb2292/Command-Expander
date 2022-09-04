@@ -6,10 +6,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import net.papierkorb2292.command_expander.variables.immediate.operator.AddableOperatorVariableType;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class MapVariable extends IndexableVariable {
@@ -182,15 +179,93 @@ public class MapVariable extends IndexableVariable {
         }
 
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(2, MapVariable.MapVariableType::new, (type, var) -> {
+            MapVariableType mapType = (MapVariableType)type;
+            VariableType keyType = mapType.key, valueType = mapType.value;
+            if(var instanceof ListVariable list) {
+                if(list.type.content == null) {
+                    if(list.value.stream().allMatch(Objects::isNull)) {
+                        return new MapVariable(mapType);
+                    }
+                    throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                }
+                if(!(list.type.content instanceof MapEntryVariable.MapEntryVariableType entryType)) {
+                    throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("MapVariable", var.getClass().getName());
+                }
+                if(keyType == null || valueType == null) {
+                    mapType = new MapVariableType();
+                    if(keyType == null) {
+                        keyType = entryType.key;
+                    }
+                    mapType.key = keyType;
+                    if(valueType == null) {
+                        valueType = entryType.value;
+                    }
+                    mapType.value = valueType;
+                }
+                VariableManager.Caster
+                        keyCaster = keyType == null ? null : keyType.getTemplate().caster,
+                        valueCaster = valueType == null ? null : valueType.getTemplate().caster;
+                MapVariable map = new MapVariable(mapType);
+                for(Variable content : list.value) {
+                    MapEntryVariable entry = (MapEntryVariable)content;
+                    Variable key = entry.value;
+                    if(key != null) {
+                        if(keyType == null) {
+                            throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                        }
+                        key = keyCaster.cast(keyType, key);
+                    }
+                    Variable value = entry.key;
+                    if(value != null) {
+                        if(valueType == null) {
+                            throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                        }
+                        value = valueCaster.cast(valueType, value);
+                    }
+                    map.value.put(key, value);
+                }
+                return map;
+            }
             if(!(var instanceof MapVariable map)) {
                 throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("MapVariable", var.getClass().getName());
             }
-            MapVariable.MapVariableType mapType = (MapVariable.MapVariableType)type;
-            Variable.VariableType keyType = mapType.key, valueType = mapType.value;
-            VariableManager.Caster keyCaster = (keyType == null ? map.type.key : keyType).getTemplate().caster, valueCaster = (valueType == null ? map.type.value : valueType).getTemplate().caster;
+            if(keyType == null || valueType == null) {
+                mapType = new MapVariableType();
+                if(keyType == null) {
+                    VariableType originalKeyType = map.type.key;
+                    mapType.key = originalKeyType;
+                    keyType = originalKeyType;
+                } else {
+                    mapType.key = keyType;
+                }
+                if(valueType == null) {
+                    VariableType originalValueType = map.type.value;
+                    mapType.value = originalValueType;
+                    valueType = originalValueType;
+                } else {
+                    mapType.value = valueType;
+                }
+            }
+            VariableManager.Caster
+                    keyCaster = keyType == null ? null : keyType.getTemplate().caster,
+                    valueCaster = valueType == null ? null : valueType.getTemplate().caster;
             MapVariable result = new MapVariable(mapType);
             for(Map.Entry<Variable, Variable> entry : map.value.entrySet()) {
-                result.value.put(keyCaster.cast(keyType, entry.getKey()), valueCaster.cast(valueType, entry.getValue()));
+                Variable key = entry.getKey();
+                if(key != null) {
+                    if(keyType == null) {
+                        throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                    }
+                    key = keyCaster.cast(keyType, key);
+                }
+                Variable value = entry.getKey();
+                if(value != null) {
+                    if(valueType == null) {
+                        throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                    }
+                    value = valueCaster.cast(valueType, value);
+                }
+                result.value.put(key, value);
             }
             return result;
         }, new VariableCodec() {
