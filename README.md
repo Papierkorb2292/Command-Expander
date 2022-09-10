@@ -8,7 +8,7 @@ All features will be toggleable, so the game can stay as vanilla as you like.
 ## Planned features
 
 - In-game datapack editor
-- Commnad optimizations
+- Command optimizations
 - Function constants
 
 ## Features currently in development
