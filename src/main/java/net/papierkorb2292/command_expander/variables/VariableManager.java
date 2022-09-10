@@ -191,7 +191,7 @@ public class VariableManager {
         return new BoundCriteriaPersistentState(data, this, scoreboard);
     }
 
-    private static void registerType(String name, Class<? extends Variable.VariableType> type, VariableTypeTemplate template) {
+    private static void registerType(String name, VariableTypeTemplate template) {
         TYPES_BY_STRING.put(name, template);
         template.id = (byte)TYPES_BY_ID.size();
         TYPES_BY_ID.add(template);
@@ -247,6 +247,7 @@ public class VariableManager {
                 return;
             }
             if(!file.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 file.getParentFile().mkdirs(); //parent folders have to be created
             }
             super.save(file);
@@ -421,13 +422,13 @@ public class VariableManager {
     }
 
     static {
-        registerType("int", IntVariable.IntVariableType.class, IntVariable.IntVariableType.TEMPLATE);
-        registerType("list", ListVariable.ListVariableType.class, ListVariable.ListVariableType.TEMPLATE);
-        registerType("map", MapVariable.MapVariableType.class, MapVariable.MapVariableType.TEMPLATE);
-        registerType("double", DoubleVariable.DoubleVariableType.class, DoubleVariable.DoubleVariableType.TEMPLATE);
-        registerType("entry", MapEntryVariable.MapEntryVariableType.class, MapEntryVariable.MapEntryVariableType.TEMPLATE);
-        registerType("long", LongVariable.LongVariableType.class, LongVariable.LongVariableType.TEMPLATE);
-        registerType("entity", EntityVariable.EntityVariableType.class, EntityVariable.EntityVariableType.TEMPLATE);
+        registerType("int", IntVariable.IntVariableType.TEMPLATE);
+        registerType("list", ListVariable.ListVariableType.TEMPLATE);
+        registerType("map", MapVariable.MapVariableType.TEMPLATE);
+        registerType("double", DoubleVariable.DoubleVariableType.TEMPLATE);
+        registerType("entry", MapEntryVariable.MapEntryVariableType.TEMPLATE);
+        registerType("long", LongVariable.LongVariableType.TEMPLATE);
+        registerType("entity", EntityVariable.EntityVariableType.TEMPLATE);
     }
 
     public static void dumpError(String error) { } //TODO: Replace with Consumer field
