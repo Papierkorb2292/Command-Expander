@@ -9,10 +9,7 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.server.command.ServerCommandSource;
 import net.papierkorb2292.command_expander.CommandExpander;
-import net.papierkorb2292.command_expander.variables.TypedVariable;
-import net.papierkorb2292.command_expander.variables.Variable;
-import net.papierkorb2292.command_expander.variables.VariableHolder;
-import net.papierkorb2292.command_expander.variables.VariableIdentifier;
+import net.papierkorb2292.command_expander.variables.*;
 import net.papierkorb2292.command_expander.variables.immediate.ImmediateValueCompiler;
 
 import java.util.ArrayList;
@@ -41,7 +38,7 @@ public class VariablePath {
         this.base = base;
         this.accessors = getters;
     }
-
+    //TODO: Make set generate parent variables if they don't exist
     /**
      * Set the variable(s) that the path points to. If there's only one value (VariableHolder), all variables will be set to that value.
      * Otherwise, like with immediate values, values of the stream are consumed and assigned to a single variable each (in the order that the variables are found)
@@ -53,10 +50,12 @@ public class VariablePath {
      * @throws CommandSyntaxException An error happened when setting the variable(s)
      */
     public int set(Either<VariableHolder, Stream<Variable>> value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
-        TypedVariable varBase = CommandExpander.getVariableManager(cc).get(base);
+        VariableManager manager = CommandExpander.getVariableManager(cc);
+        TypedVariable varBase = manager.get(base);
         if (accessors == null || accessors.length == 0) {
             if (value.left().isPresent()) {
                 varBase.castAndSet(value.left().get().variable);
+                manager.updateVariableBindingReferences(this, cc);
                 return 1;
             }
             throw MULTIPLE_VALUES_TO_SINGLE_VARIABLE_EXCEPTION.create();
@@ -66,7 +65,9 @@ public class VariablePath {
         for (int i = 0; i < lastGetter; ++i) {
             current = accessors[i].getChildren(current, cc);
         }
-        return accessors[lastGetter].setChildren(current, value, cc);
+        int result = accessors[lastGetter].setChildren(current, value, cc);
+        manager.updateVariableBindingReferences(this, cc);
+        return result;
     }
 
     /**
@@ -77,17 +78,21 @@ public class VariablePath {
      * @throws CommandSyntaxException An error happened when removing the variable(s)
      */
     public int remove(CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+        VariableManager manager = CommandExpander.getVariableManager(cc);
         if (accessors == null || accessors.length == 0) {
-            CommandExpander.getVariableManager(cc).remove(base);
+            manager.remove(base);
+            manager.removeVariableBindingReferences(this, cc);
             return 1;
         }
-        TypedVariable varBase = CommandExpander.getVariableManager(cc).get(base);
+        TypedVariable varBase = manager.get(base);
         Either<VariableHolder, Stream<Variable>> current = Either.left(new VariableHolder(varBase.var));
         int lastGetter = accessors.length - 1;
         for (int i = 0; i < lastGetter; ++i) {
             current = accessors[i].getChildren(current, cc);
         }
-        return accessors[lastGetter].removeChildren(current, cc);
+        int result = accessors[lastGetter].removeChildren(current, cc);
+        manager.removeVariableBindingReferences(this, cc);
+        return result;
     }
 
     /**
@@ -177,5 +182,15 @@ public class VariablePath {
         }
         reader.setCursor(backCursor);
         return new VariablePath(base, getters.toArray(new PathChildrenAccessor[0]));
+    }
+
+    public VariableIdentifier getBase() {
+        return base;
+    }
+    public int getAccessorLength() {
+        return accessors == null ? 0 : accessors.length;
+    }
+    public PathChildrenAccessor getAccessor(int index) {
+        return accessors[index];
     }
 }

@@ -2,23 +2,29 @@ package net.papierkorb2292.command_expander.variables;
 
 import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
-import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.scoreboard.ScoreboardCriterion;
+import net.minecraft.scoreboard.ScoreboardPlayerScore;
+import net.minecraft.scoreboard.ServerScoreboard;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.Identifier;
+import net.minecraft.world.PersistentState;
 import net.minecraft.world.PersistentStateManager;
 import net.papierkorb2292.command_expander.CommandExpander;
+import net.papierkorb2292.command_expander.variables.path.VariablePath;
 
 import java.io.File;
 import java.util.*;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class VariableManager {
@@ -39,12 +45,17 @@ public class VariableManager {
     public static final Dynamic2CommandExceptionType INVALID_TYPE_ID = new Dynamic2CommandExceptionType((name, id)-> new LiteralMessage(String.format("Encountered invalid type id '%s' while decoding variable '%s'", id, name)));
     public static final Dynamic2CommandExceptionType VARIABLE_DATA_MISSING_ELEMENT_EXCEPTION = new Dynamic2CommandExceptionType((name, tag) -> new LiteralMessage(String.format("Unable to find nbt tag '%s' in variable '%s'", tag, name)));
     public static final DynamicCommandExceptionType VARIABLE_ALREADY_EXISTS_EXCEPTION = new DynamicCommandExceptionType(name -> new LiteralMessage(String.format("The variable '%s' already exists", name)));
+    public static final SimpleCommandExceptionType CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Child type was null but children were present"));
 
     private final PersistentStateManager stateManager;
-    private final Map<String, PersistentState> namespaces = new HashMap<>();
+    private final Map<String, VariablePersistentState> namespaces = new HashMap<>();
+    private final BoundCriteriaPersistentState criteriaPersistentState;
+    final ServerScoreboard scoreboard;
 
-    public VariableManager(PersistentStateManager stateManager) {
+    public VariableManager(PersistentStateManager stateManager, ServerScoreboard scoreboard) {
         this.stateManager = stateManager;
+        this.scoreboard = scoreboard;
+        criteriaPersistentState = stateManager.getOrCreate(this::createBoundCriteriaPersistentState, BoundCriteriaPersistentState::new, COMMAND_VARIABLE_PREFIX + "%bindings");
     }
 
     /**
@@ -132,7 +143,7 @@ public class VariableManager {
     }
 
     public TypedVariable get(VariableIdentifier id) throws CommandSyntaxException {
-        PersistentState state = stateManager.get(data -> createPersistentState(data, id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace);
+        VariablePersistentState state = stateManager.get(data -> createVariablePersistentState(data, id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace);
         if(state == null) {
             throw VARIABLE_NOT_FOUND_EXCEPTION.create(id);
         }
@@ -147,7 +158,7 @@ public class VariableManager {
      * @throws CommandSyntaxException The variable wasn't found or an error happened when loading it
      */
     public TypedVariable getReadonly(VariableIdentifier id) throws CommandSyntaxException {
-        PersistentState state = stateManager.get(data -> createPersistentState(data, id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace);
+        VariablePersistentState state = stateManager.get(data -> createVariablePersistentState(data, id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace);
         if(state == null) {
             throw VARIABLE_NOT_FOUND_EXCEPTION.create(id);
         }
@@ -155,11 +166,11 @@ public class VariableManager {
     }
 
     public void add(VariableIdentifier id, Variable.VariableType type) throws CommandSyntaxException {
-        stateManager.getOrCreate(data -> createPersistentState(data, id.namespace), () -> createPersistentState(new NbtCompound(), id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace).add(id.path, type);
+        stateManager.getOrCreate(data -> createVariablePersistentState(data, id.namespace), () -> createVariablePersistentState(new NbtCompound(), id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace).add(id.path, type);
     }
 
     public void remove(VariableIdentifier id) throws CommandSyntaxException {
-        PersistentState state = stateManager.get(data -> createPersistentState(data, id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace);
+        VariablePersistentState state = stateManager.get(data -> createVariablePersistentState(data, id.namespace), COMMAND_VARIABLE_PREFIX + id.namespace);
         if(state == null) {
             throw VARIABLE_NOT_FOUND_EXCEPTION.create(id);
         }
@@ -170,10 +181,14 @@ public class VariableManager {
         return this.namespaces.entrySet().stream().flatMap(entry -> entry.getValue().getIds());
     }
 
-    private PersistentState createPersistentState(NbtCompound data, String namespace) {
-        PersistentState state = new PersistentState(data, namespace);
+    private VariablePersistentState createVariablePersistentState(NbtCompound data, String namespace) {
+        VariablePersistentState state = new VariablePersistentState(data, namespace);
         namespaces.put(namespace, state);
         return state;
+    }
+
+    private BoundCriteriaPersistentState createBoundCriteriaPersistentState(NbtCompound data) {
+        return new BoundCriteriaPersistentState(data, this, scoreboard);
     }
 
     private static void registerType(String name, Class<? extends Variable.VariableType> type, VariableTypeTemplate template) {
@@ -194,13 +209,13 @@ public class VariableManager {
         Variable cast(Variable.VariableType type, Variable var) throws CommandSyntaxException;
     }
 
-    public static class PersistentState extends net.minecraft.world.PersistentState {
+    public static class VariablePersistentState extends PersistentState {
 
         private final NbtCompound data;
         private final Map<String, TypedVariable> loadedVariables = new HashMap<>();
         private final String namespace;
 
-        public PersistentState(NbtCompound data, String namespace) {
+        public VariablePersistentState(NbtCompound data, String namespace) {
             this.data = data;
             this.namespace = namespace;
         }
@@ -208,47 +223,20 @@ public class VariableManager {
         @Override
         public NbtCompound writeNbt(NbtCompound nbt) {
             nbt.copyFrom(data);
-            Deque<Variable.VariableType> typeEncoderStack = new LinkedBlockingDeque<>();
-            Queue<VariableTypeTemplate> typeEncoderEncounteredTypes = new LinkedBlockingQueue<>();
             for(Map.Entry<String, TypedVariable> entry : loadedVariables.entrySet()) {
-                int typeSize = 1;
-                typeEncoderStack.add(entry.getValue().type);
-                while(!typeEncoderStack.isEmpty()) {
-                    Variable.VariableType type = typeEncoderStack.pop();
-                    VariableTypeTemplate typeTemplate = type.getTemplate();
-                    typeEncoderEncounteredTypes.add(typeTemplate);
-                    int childrenCount = typeTemplate.childrenCount;
-                    typeSize += childrenCount;
-                    for(int i = 0; i < childrenCount; ++i) {
-                        typeEncoderStack.add(type.getChild(i));
-                    }
-                }
-                byte[] typeArray = new byte[typeSize];
-                int index = 0;
-                while(!typeEncoderEncounteredTypes.isEmpty()) {
-                    typeArray[index] = typeEncoderEncounteredTypes.remove().id;
-                    ++index;
-                }
-                NbtByteArray typeNbt = new NbtByteArray(typeArray);
-                DataResult<NbtElement> var =
-                        entry.getValue().type.getTemplate()
-                        .codec.encode(entry.getValue().var, NbtOps.INSTANCE, NbtOps.INSTANCE.empty());
-                if(var.error().isPresent()) {
-                    if(var.resultOrPartial(VariableManager::dumpError).isPresent()) {
-                        CommandExpander.LOGGER.error("Error encoding variable '{}': {}", new Identifier(namespace, entry.getKey()), var.error().get().message());
-                        var = var.promotePartial(VariableManager::dumpError);
-                    }
-                    else {
-                        CommandExpander.LOGGER.error("FATAL error encoding variable '{}', no data could be recovered: {}", new Identifier(namespace, entry.getKey()), var.error().get().message());
+                DataResult<NbtElement> dataResult = TypedVariable.encode(entry.getValue(), NbtOps.INSTANCE, NbtOps.INSTANCE.empty());
+                Optional<NbtElement> parsedElement = dataResult.resultOrPartial(VariableManager::dumpError);
+                if(dataResult.error().isPresent()) {
+                    if(parsedElement.isPresent()) {
+                        CommandExpander.LOGGER.error("Error encoding variable '{}': {}", new Identifier(namespace, entry.getKey()), dataResult.error().get().message());
                         continue;
                     }
-                }
-                var = var.flatMap(element -> NbtOps.INSTANCE.mapBuilder().add("type", typeNbt).build(element));
-                if(var.error().isPresent()) {
-                    CommandExpander.LOGGER.error("FATAL error adding type to encoded variable '{}', no data could be recovered: {}", new Identifier(namespace, entry.getKey()), var.error().get().message());
+                    CommandExpander.LOGGER.error("FATAL error encoding variable '{}', no data could be recovered: {}", new Identifier(namespace, entry.getKey()), dataResult.error().get().message());
                     continue;
                 }
-                nbt.put(entry.getKey(), var.result().get());
+                if(parsedElement.isPresent()) {
+                    nbt.put(entry.getKey(), parsedElement.get());
+                }
             }
             return nbt;
         }
@@ -262,28 +250,6 @@ public class VariableManager {
                 file.getParentFile().mkdirs(); //parent folders have to be created
             }
             super.save(file);
-        }
-
-        private Variable.VariableType decodeType(byte[] type, OffsetHolder offset, String variableName) throws CommandSyntaxException {
-            if(type.length - offset.value <= 0) {
-                throw TYPE_DATA_TOO_SHORT_EXCEPTION.create(variableName);
-            }
-            byte id = type[offset.value];
-            if(id < 0 || id >= TYPES_BY_ID.size()) {
-                throw INVALID_TYPE_ID.create(variableName, id);
-            }
-            VariableTypeTemplate template = TYPES_BY_ID.get(id);
-            Variable.VariableType result = template.typeFactory.get();
-            ++offset.value;
-            for(int i = 0; i < template.childrenCount; ++i) {
-                result.setChild(i, decodeType(type, offset, variableName));
-            }
-            return result;
-        }
-
-        private static class OffsetHolder {
-
-            public int value = 0;
         }
 
         private TypedVariable getOrLoad(String name) throws CommandSyntaxException {
@@ -300,10 +266,8 @@ public class VariableManager {
                     throw VARIABLE_DATA_MISSING_ELEMENT_EXCEPTION.create(new Identifier(namespace, name), "type");
                 }
 
-                byte[] typeArray = variableData.getByteArray("type");
-                Variable.VariableType type = decodeType(typeArray, new OffsetHolder(), name);
-                DataResult<Pair<VariableHolder, NbtElement>> dataResult = TYPES_BY_ID.get(typeArray[0]).codec.decode(NbtOps.INSTANCE, variableData, type);
-                Optional<Pair<VariableHolder, NbtElement>> var = dataResult.resultOrPartial(VariableManager::dumpError);
+                DataResult<Pair<TypedVariable, NbtElement>> dataResult = TypedVariable.decode(variableDataElement, NbtOps.INSTANCE);
+                Optional<Pair<TypedVariable, NbtElement>> var = dataResult.resultOrPartial(VariableManager::dumpError);
                 if(dataResult.error().isPresent()) {
                     if(var.isPresent()) {
                         CommandExpander.LOGGER.error("Error decoding variable '{}': {} with error elements: {}", new Identifier(namespace, name), dataResult.error().get().message(), var.get().getSecond());
@@ -313,8 +277,10 @@ public class VariableManager {
                         throw UNABLE_TO_DECODE_VARIABLE_EXCEPTION.create(new Identifier(namespace, name));
                     }
                 }
-                result = new TypedVariable(type, var.get().getFirst().variable);
-                loadedVariables.put(name, result);
+                if(var.isPresent()) {
+                    result = var.get().getFirst();
+                    loadedVariables.put(name, result);
+                }
             }
             return result;
         }
@@ -361,7 +327,97 @@ public class VariableManager {
             }
             markDirty();
         }
+    }
 
+    public void updateBoundVariables(ScoreboardCriterion criterion, String player, Consumer<ScoreboardPlayerScore> action) {
+        CriterionBinding binding = criteriaPersistentState.bindings.get(criterion.getName());
+        if(binding != null) {
+            for (CriterionPath.BoundVariable boundVariable : binding.variables) {
+                action.accept(boundVariable.getScore(player));
+            }
+        }
+    }
+
+    public int bindCriteria(VariablePath path, List<String> criteria, CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        int addedBindings = 0;
+        for(String criterion : criteria) {
+            CriterionBinding criterionBinding = criteriaPersistentState.bindings.computeIfAbsent(criterion, key -> new CriterionBinding());
+            addedBindings += criterionBinding.bind(path, this, context);
+        }
+        if(addedBindings > 0) {
+            criteriaPersistentState.markDirty();
+        }
+        return addedBindings;
+    }
+
+    public int unbindCriteria(VariablePath path, List<String> criteria, CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        int removedBindings = 0;
+        for(String criterion : criteria) {
+            CriterionBinding criterionBinding = criteriaPersistentState.bindings.get(criterion);
+            if(criterionBinding != null) {
+                removedBindings += criterionBinding.unbind(path, this, context);
+            }
+        }
+        if(removedBindings > 0) {
+            criteriaPersistentState.markDirty();
+        }
+        return removedBindings;
+    }
+
+    public void updateVariableBindingReferences(VariablePath path, CommandContext<ServerCommandSource> cc) {
+        for(CriterionBinding binding : criteriaPersistentState.bindings.values()) {
+            try {
+                binding.updateReferences(path, this, cc);
+            } catch (CommandSyntaxException e) {
+                CommandExpander.LOGGER.error("Error updating bound variable references: ", e);
+            }
+        }
+    }
+
+    public void removeVariableBindingReferences(VariablePath path, CommandContext<ServerCommandSource> cc) {
+        Iterator<CriterionBinding> iterator = criteriaPersistentState.bindings.values().iterator();
+        while (iterator.hasNext()) {
+            CriterionBinding binding = iterator.next();
+            try {
+                binding.removeReferences(path, this, cc);
+            } catch (CommandSyntaxException e) {
+                CommandExpander.LOGGER.error("Error removing bound variable references: ", e);
+            }
+            if(binding.variables.isEmpty()) {
+                iterator.remove();
+            }
+        }
+    }
+
+    /**
+     * A persistent state storing a mapping of criteria names to their {@link CriterionBinding}s.
+     * Its nbt form is a compound with the tags representing the criteria names and the nbt form of {@link CriterionBinding} as values
+     */
+    public static class BoundCriteriaPersistentState extends PersistentState {
+
+        final Map<String, CriterionBinding> bindings = new HashMap<>();
+
+        public BoundCriteriaPersistentState() { }
+
+        public BoundCriteriaPersistentState(NbtCompound data, VariableManager manager, ServerScoreboard scoreboard) {
+            for(String criterion : data.getKeys()) {
+                if(ScoreboardCriterion.getOrCreateStatCriterion(criterion).isEmpty()) {
+                    CommandExpander.LOGGER.warn("Encountered unknown criterion '{}' when reading variable bindings", criterion);
+                    continue;
+                }
+                bindings.put(criterion, CriterionBinding.read(manager, criterion, data.getCompound(criterion), scoreboard));
+            }
+        }
+
+        @Override
+        public NbtCompound writeNbt(NbtCompound nbt) {
+            for(Map.Entry<String, CriterionBinding> binding : bindings.entrySet()) {
+                if(binding.getValue().paths.size() > 0) {
+                    nbt.put(binding.getKey(), binding.getValue().write(new NbtCompound()));
+                }
+            }
+            return nbt;
+        }
     }
 
     static {
@@ -374,6 +430,6 @@ public class VariableManager {
         registerType("entity", EntityVariable.EntityVariableType.class, EntityVariable.EntityVariableType.TEMPLATE);
     }
 
-    public static void dumpError(String error) { }
+    public static void dumpError(String error) { } //TODO: Replace with Consumer field
 
 }

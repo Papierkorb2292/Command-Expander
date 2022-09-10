@@ -7,7 +7,7 @@ import net.papierkorb2292.command_expander.variables.immediate.operator.AddableO
 import net.papierkorb2292.command_expander.variables.immediate.operator.MultipliableOperatorVariableType;
 import net.papierkorb2292.command_expander.variables.immediate.operator.NegatableOperatorVariableType;
 
-public class IntVariable extends Variable {
+public class IntVariable extends CriteriaBindableNumberVariable {
 
     private int value = 0;
 
@@ -105,12 +105,22 @@ public class IntVariable extends Variable {
         return new IntVariable(Integer.parseInt(value, 2));
     }
 
-    public static class IntVariableType implements VariableType, AddableOperatorVariableType, MultipliableOperatorVariableType, NegatableOperatorVariableType {
+    @Override
+    public void add(int value) {
+        this.value += value;
+    }
+
+    @Override
+    public void set(int value) {
+        this.value = value;
+    }
+
+    public static class IntVariableType implements CriteriaBindableNumberVariableType, AddableOperatorVariableType, MultipliableOperatorVariableType, NegatableOperatorVariableType {
 
         public static final IntVariableType INSTANCE = new IntVariableType();
 
         @Override
-        public Variable createVariable() {
+        public IntVariable createVariable() {
             return new IntVariable();
         }
 

@@ -42,8 +42,12 @@ public abstract class Variable {
         }
     }
 
-    public interface VariableType {
+    public TypedVariable toTypedVariable() {
+        return new TypedVariable(getType(), this);
+    }
 
+    public interface VariableType {
+        //TODO: Add toString()
         Variable createVariable();
         VariableTypeTemplate getTemplate();
         VariableType getNextLoweredType();

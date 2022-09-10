@@ -8,6 +8,9 @@ import net.minecraft.text.Text;
 import net.papierkorb2292.command_expander.CommandExpander;
 import net.papierkorb2292.command_expander.variables.Variable;
 import net.papierkorb2292.command_expander.variables.VariableIdentifier;
+import net.papierkorb2292.command_expander.variables.path.VariablePath;
+
+import java.util.List;
 
 public class VarCommand {
 
@@ -62,6 +65,30 @@ public class VarCommand {
                                                             context.getSource().sendFeedback(Text.of(String.format("Successfully set %s %s", result, result == 1 ? "variable" : "variables")), true);
                                                             return result;
                                                         })))
+                        )
+                        .then(
+                                CommandManager.literal("bind")
+                                        .then(CommandManager.argument("id", VariablePathArgumentType.variablePath())
+                                                .then(CommandManager.argument("criteria", MultiScoreboardCriterionArgumentType.scoreboardCriterion())
+                                                        .executes(context -> {
+                                                            List<String> criteria = MultiScoreboardCriterionArgumentType.getScoreboardCriteria(context, "criteria");
+                                                            VariablePath path = VariablePathArgumentType.getVariablePath(context, "id");
+                                                            int result = CommandExpander.getVariableManager(context).bindCriteria(path, criteria, context);
+                                                            context.getSource().sendFeedback(Text.of(String.format("Successfully added %s %s", result, result == 1 ? "binding" : "bindings")), true);
+                                                            return result;
+                                                        })))
+                        )
+                        .then(
+                                CommandManager.literal("unbind")
+                                        .then(CommandManager.argument("id", VariablePathArgumentType.variablePath())
+                                                .then(CommandManager.argument("criteria", MultiScoreboardCriterionArgumentType.scoreboardCriterion())
+                                                    .executes(context -> {
+                                                        List<String> criteria = MultiScoreboardCriterionArgumentType.getScoreboardCriteria(context, "criteria");
+                                                        VariablePath path = VariablePathArgumentType.getVariablePath(context, "id");
+                                                        int result = CommandExpander.getVariableManager(context).unbindCriteria(path, criteria, context);
+                                                        context.getSource().sendFeedback(Text.of(String.format("Successfully removed %s %s", result, result == 1 ? "binding" : "bindings")), true);
+                                                        return result;
+                                                    })))
                         ));
     }
 

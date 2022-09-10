@@ -99,4 +99,20 @@ public class VariableIdentifier {
     public static boolean isCharInvalidGeneral(char c) {
         return c != '$' && (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && c != '_' && c != '.' && (c < '0' || c > '9');
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj == this) {
+            return true;
+        }
+        if(!(obj instanceof VariableIdentifier that)) {
+            return false;
+        }
+        return this.path.equals(that.path) && this.namespace.equals(that.namespace);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.path.hashCode() ^ this.namespace.hashCode();
+    }
 }

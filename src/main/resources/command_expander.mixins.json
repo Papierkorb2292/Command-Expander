@@ -6,7 +6,9 @@
   "mixins": [
     "EntitySelectorReaderMixin",
     "ExecuteCommandMixin",
-    "MinecraftServerMixin"
+    "MinecraftServerMixin",
+    "ScoreboardMixin",
+    "ServerScoreboardAccessor"
   ],
   "client": [
     "client.CommandSuggestorMixin"

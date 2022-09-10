@@ -11,7 +11,9 @@ import net.papierkorb2292.command_expander.variables.immediate.ImmediateValue;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Spliterators;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -19,7 +21,7 @@ import java.util.stream.StreamSupport;
  * Interface for accessors of {@link VariablePath}s defining how to get, set or remove the specified children.
  * Accessors are for example used for indexing or accessing the key/value of a map entry
  */
-interface PathChildrenAccessor {
+public interface PathChildrenAccessor {
 
     /**
      * Gets all children that the accessor points to.
@@ -49,6 +51,16 @@ interface PathChildrenAccessor {
      * @throws CommandSyntaxException An error happened when removing the children
      */
     int removeChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException;
+
+    /**
+     * Gets the {@link CriterionPath.ChildDescriptor}s that point to the children that the accessor uses. Needed
+     * when using the variable path in criteria binding to save each bound variable individually
+     * @param value The variable that the accessor is applied to
+     * @param cc The command context of the command the path is used in
+     * @return The child descriptors for the children of the value
+     * @throws CommandSyntaxException An error happened when getting the child descriptors. For example when the value was of the wrong type
+     */
+    List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException; //TODO: Cash result
 
     /**
      * Indexes variables with an {@link ImmediateValue} as index.<br/>
@@ -331,6 +343,18 @@ interface PathChildrenAccessor {
             );
         }
 
+        @Override
+        public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+            if(!(value instanceof IndexableVariable)) {
+                throw VariablePath.VARIABLE_NOT_INDEXABLE_EXCEPTION.create();
+            }
+            Either<VariableHolder, Stream<Variable>> calculatedIndex = index.calculate(cc);
+            return calculatedIndex.map(
+                    holder -> List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.INDEXED, holder.variable)),
+                    stream -> stream.map(index -> new CriterionPath.ChildDescriptor(CriterionPath.ChildType.INDEXED, index)).toList()
+            );
+        }
+
         /**
          * Gets the value of the index in the {@link IndexableVariable} or, if the inndexable variable is a list of maps and the index is map,
          * gets all content of the list with matching values for all keys present in the index.
@@ -584,6 +608,14 @@ interface PathChildrenAccessor {
                 return indexable.clear();
             }).sum();
         }
+
+        @Override
+        public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+            if(!(value instanceof IndexableVariable indexable)) {
+                throw VariablePath.VARIABLE_NOT_INDEXABLE_EXCEPTION.create();
+            }
+            return indexable.getIndices().map(var -> new CriterionPath.ChildDescriptor(CriterionPath.ChildType.INDEXED, var)).collect(Collectors.toList());
+        }
     }
 
     /**
@@ -623,6 +655,11 @@ interface PathChildrenAccessor {
         @Override
         public int removeChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
             throw VariablePath.UNABLE_TO_REMOVE_FROM_ENTRY_EXCEPTION.create();
+        }
+
+        @Override
+        public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) {
+            return List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.ENTRY_KEY));
         }
     }
 
@@ -664,6 +701,11 @@ interface PathChildrenAccessor {
         @Override
         public int removeChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
             throw VariablePath.UNABLE_TO_REMOVE_FROM_ENTRY_EXCEPTION.create();
+        }
+
+        @Override
+        public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) {
+            return List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.ENTRY_VALUE));
         }
     }
 }
