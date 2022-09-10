@@ -258,7 +258,7 @@ public class MapVariable extends IndexableVariable {
                     }
                     key = keyCaster.cast(keyType, key);
                 }
-                Variable value = entry.getKey();
+                Variable value = entry.getValue();
                 if(value != null) {
                     if(valueType == null) {
                         throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
