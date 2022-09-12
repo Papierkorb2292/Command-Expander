@@ -107,7 +107,7 @@ public class CriterionPath {
             variableToUpdate = new BoundVariable.BoundMapVariable(scoreboard, map);
             variables.add(variableToUpdate);
         } else {
-            throw INVALID_VARIABLE_TYPE_EXCEPTION.create(var.getType());
+            throw INVALID_VARIABLE_TYPE_EXCEPTION.create(var.getType().asString());
         }
     }
 
@@ -150,7 +150,7 @@ public class CriterionPath {
             @Override
             public void setVariable(Variable var) throws CommandSyntaxException {
                 if(!(var instanceof CriteriaBindableNumberVariable number)) {
-                    throw INVALID_VARIABLE_TYPE_EXCEPTION.create(var.getType());
+                    throw INVALID_VARIABLE_TYPE_EXCEPTION.create(var.getType().asString());
                 }
                 variable = number;
             }
@@ -195,7 +195,7 @@ public class CriterionPath {
             @Override
             public void setVariable(Variable var) throws CommandSyntaxException {
                 if(!(var instanceof MapVariable map)) {
-                    throw INVALID_VARIABLE_TYPE_EXCEPTION.create(var.getType());
+                    throw INVALID_VARIABLE_TYPE_EXCEPTION.create(var.getType().asString());
                 }
                 this.variable = map;
 

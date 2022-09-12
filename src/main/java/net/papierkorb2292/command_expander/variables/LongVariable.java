@@ -133,6 +133,11 @@ public class LongVariable extends CriteriaBindableNumberVariable {
             return DoubleVariable.DoubleVariableType.INSTANCE;
         }
 
+        @Override
+        public String getName() {
+            return "long";
+        }
+
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(
                 0, () -> LongVariableType.INSTANCE,
                 (type, var) -> new LongVariable(var.longValue()),

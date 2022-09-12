@@ -75,6 +75,11 @@ public class EntityVariable extends Variable {
             return LongVariable.LongVariableType.INSTANCE;
         }
 
+        @Override
+        public String getName() {
+            return "entity";
+        }
+
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(
                 0, () -> EntityVariableType.INSTANCE,
                 (type, var) -> {

@@ -92,6 +92,11 @@ public class DoubleVariable extends CriteriaBindableNumberVariable {
             return null;
         }
 
+        @Override
+        public String getName() {
+            return "double";
+        }
+
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(
                 0, () -> DoubleVariableType.INSTANCE,
                 (type, var) -> new DoubleVariable(var.doubleValue()),

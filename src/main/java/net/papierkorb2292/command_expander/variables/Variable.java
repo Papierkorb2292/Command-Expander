@@ -47,7 +47,7 @@ public abstract class Variable {
     }
 
     public interface VariableType {
-        //TODO: Add toString()
+
         Variable createVariable();
         VariableTypeTemplate getTemplate();
         VariableType getNextLoweredType();
@@ -235,6 +235,28 @@ public abstract class Variable {
             }
             return false;
 
+        }
+
+        /**
+         * @return The name of this variable type used when registering it, like <i>int</i> or <i>map</i>
+         */
+        String getName();
+
+        /**
+         * @return The string that represents this variable type with its children, like <i>int</i> or <i>map&lt;entity, long&gt;</i>
+         */
+        default String asString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(getName());
+            int children = getTemplate().childrenCount;
+            if(children > 0) {
+                sb.append('<');
+                for (int i = 0; i < children; ++i) {
+                    sb.append(getChild(i).asString());
+                }
+                sb.append('>');
+            }
+            return sb.toString();
         }
     }
 }

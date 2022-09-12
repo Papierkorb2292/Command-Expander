@@ -186,6 +186,11 @@ public class ListVariable extends IndexableVariable {
             return index == 0 ? content : null;
         }
 
+        @Override
+        public String getName() {
+            return "list";
+        }
+
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(1, ListVariable.ListVariableType::new, (type, var) -> {
             ListVariable.ListVariableType listType = (ListVariable.ListVariableType)type;
             Variable.VariableType childrenType = listType.content;

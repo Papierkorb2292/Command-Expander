@@ -178,6 +178,11 @@ public class MapVariable extends IndexableVariable {
             return index == 0 ? key : index == 1 ? value : null;
         }
 
+        @Override
+        public String getName() {
+            return "map";
+        }
+
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(2, MapVariable.MapVariableType::new, (type, var) -> {
             MapVariableType mapType = (MapVariableType)type;
             VariableType keyType = mapType.key, valueType = mapType.value;
