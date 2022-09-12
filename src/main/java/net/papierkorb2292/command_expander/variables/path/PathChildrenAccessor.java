@@ -6,13 +6,13 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Texts;
+import net.minecraft.util.Util;
 import net.papierkorb2292.command_expander.variables.*;
 import net.papierkorb2292.command_expander.variables.immediate.ImmediateValue;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Spliterators;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -60,7 +60,7 @@ public interface PathChildrenAccessor {
      * @return The child descriptors for the children of the value
      * @throws CommandSyntaxException An error happened when getting the child descriptors. For example when the value was of the wrong type
      */
-    List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException; //TODO: Cash result
+    List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException;
 
     /**
      * Indexes variables with an {@link ImmediateValue} as index.<br/>
@@ -343,16 +343,23 @@ public interface PathChildrenAccessor {
             );
         }
 
+        private final Map<CommandContext<ServerCommandSource>, List<CriterionPath.ChildDescriptor>> childDescriptors = new HashMap<>();
+
         @Override
         public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
             if(!(value instanceof IndexableVariable)) {
                 throw VariablePath.VARIABLE_NOT_INDEXABLE_EXCEPTION.create();
             }
+            if(childDescriptors.containsKey(cc)) {
+                return childDescriptors.get(cc);
+            }
             Either<VariableHolder, Stream<Variable>> calculatedIndex = index.calculate(cc);
-            return calculatedIndex.map(
+            List<CriterionPath.ChildDescriptor> result = calculatedIndex.map(
                     holder -> List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.INDEXED, holder.variable)),
                     stream -> stream.map(index -> new CriterionPath.ChildDescriptor(CriterionPath.ChildType.INDEXED, index)).toList()
             );
+            childDescriptors.put(cc, result);
+            return result;
         }
 
         /**
@@ -609,12 +616,15 @@ public interface PathChildrenAccessor {
             }).sum();
         }
 
+        private final Function<IndexableVariable, List<CriterionPath.ChildDescriptor>> childDescriptors = Util.memoize(
+                indexable -> indexable.getIndices().map(var -> new CriterionPath.ChildDescriptor(CriterionPath.ChildType.INDEXED, var)).collect(Collectors.toList()));
+
         @Override
         public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
             if(!(value instanceof IndexableVariable indexable)) {
                 throw VariablePath.VARIABLE_NOT_INDEXABLE_EXCEPTION.create();
             }
-            return indexable.getIndices().map(var -> new CriterionPath.ChildDescriptor(CriterionPath.ChildType.INDEXED, var)).collect(Collectors.toList());
+            return childDescriptors.apply(indexable);
         }
     }
 
@@ -657,9 +667,11 @@ public interface PathChildrenAccessor {
             throw VariablePath.UNABLE_TO_REMOVE_FROM_ENTRY_EXCEPTION.create();
         }
 
+        private static final List<CriterionPath.ChildDescriptor> childDescriptors = List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.ENTRY_KEY));
+
         @Override
         public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) {
-            return List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.ENTRY_KEY));
+            return childDescriptors;
         }
     }
 
@@ -703,9 +715,11 @@ public interface PathChildrenAccessor {
             throw VariablePath.UNABLE_TO_REMOVE_FROM_ENTRY_EXCEPTION.create();
         }
 
+        private static final List<CriterionPath.ChildDescriptor> childDescriptors = List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.ENTRY_VALUE));
+
         @Override
         public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) {
-            return List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.ENTRY_VALUE));
+            return childDescriptors;
         }
     }
 }
