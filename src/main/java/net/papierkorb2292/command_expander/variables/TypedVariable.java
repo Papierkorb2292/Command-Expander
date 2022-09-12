@@ -51,8 +51,8 @@ public class TypedVariable {
         DataResult<T> result = var.type.getTemplate().codec.encode(var.var, ops, prefix);
         result = result.mapError(error -> "Error encoding variable: " + error);
         if(result.error().isPresent()) {
-            if(result.resultOrPartial(VariableManager::dumpError).isPresent()) {
-                result = result.promotePartial(VariableManager::dumpError);
+            if(result.resultOrPartial(VariableManager.dumpError).isPresent()) {
+                result = result.promotePartial(VariableManager.dumpError);
             }
             else {
                 return result.mapError(error -> "Error encoding variable: " + error);

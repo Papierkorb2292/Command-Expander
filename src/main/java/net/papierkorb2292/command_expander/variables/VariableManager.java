@@ -225,7 +225,7 @@ public class VariableManager {
             nbt.copyFrom(data);
             for(Map.Entry<String, TypedVariable> entry : loadedVariables.entrySet()) {
                 DataResult<NbtElement> dataResult = TypedVariable.encode(entry.getValue(), NbtOps.INSTANCE, NbtOps.INSTANCE.empty());
-                Optional<NbtElement> parsedElement = dataResult.resultOrPartial(VariableManager::dumpError);
+                Optional<NbtElement> parsedElement = dataResult.resultOrPartial(VariableManager.dumpError);
                 if(dataResult.error().isPresent()) {
                     if(parsedElement.isPresent()) {
                         CommandExpander.LOGGER.error("Error encoding variable '{}': {}", new Identifier(namespace, entry.getKey()), dataResult.error().get().message());
@@ -268,7 +268,7 @@ public class VariableManager {
                 }
 
                 DataResult<Pair<TypedVariable, NbtElement>> dataResult = TypedVariable.decode(variableDataElement, NbtOps.INSTANCE);
-                Optional<Pair<TypedVariable, NbtElement>> var = dataResult.resultOrPartial(VariableManager::dumpError);
+                Optional<Pair<TypedVariable, NbtElement>> var = dataResult.resultOrPartial(VariableManager.dumpError);
                 if(dataResult.error().isPresent()) {
                     if(var.isPresent()) {
                         CommandExpander.LOGGER.error("Error decoding variable '{}': {} with error elements: {}", new Identifier(namespace, name), dataResult.error().get().message(), var.get().getSecond());
@@ -431,6 +431,5 @@ public class VariableManager {
         registerType("entity", EntityVariable.EntityVariableType.TEMPLATE);
     }
 
-    public static void dumpError(String error) { } //TODO: Replace with Consumer field
-
+    public static final Consumer<String> dumpError = error -> { };
 }

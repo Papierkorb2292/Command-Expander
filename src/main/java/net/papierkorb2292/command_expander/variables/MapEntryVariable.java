@@ -145,7 +145,7 @@ public class MapEntryVariable extends Variable {
                                             .add("keys", key.getSecond())
                                             .add("values", value.getSecond())
                                             .build(ops.empty());
-                                    T errorElements = errorElementsDataResult.resultOrPartial(VariableManager::dumpError).orElse(null);
+                                    T errorElements = errorElementsDataResult.resultOrPartial(VariableManager.dumpError).orElse(null);
                                     MapEntryVariable result = new MapEntryVariable(mapEntryType);
                                     result.key = key.getFirst().variable;
                                     result.value = value.getFirst().variable;

@@ -288,7 +288,7 @@ public class CriterionPath {
             Variable value = null;
             if(pathCompound.contains("value", NbtElement.COMPOUND_TYPE)) {
                 DataResult<Pair<Variable, NbtElement>> valueDataResult = TypedVariable.decode(pathCompound.getCompound("value"), NbtOps.INSTANCE).map(pair -> pair.mapFirst(typed -> typed.var));
-                Optional<Pair<Variable, NbtElement>> pair = valueDataResult.promotePartial(VariableManager::dumpError).result();
+                Optional<Pair<Variable, NbtElement>> pair = valueDataResult.promotePartial(VariableManager.dumpError).result();
                 if(pair.isPresent()) {
                     value = pair.get().getFirst();
                     if(valueDataResult.error().isPresent()) {
@@ -305,7 +305,7 @@ public class CriterionPath {
             compound.putByte("type", (byte) type.ordinal());
             if(value != null) {
                 DataResult<NbtElement> valueDataResult = TypedVariable.encode(value.toTypedVariable(), NbtOps.INSTANCE, NbtOps.INSTANCE.empty());
-                Optional<NbtElement> element = valueDataResult.promotePartial(VariableManager::dumpError).result();
+                Optional<NbtElement> element = valueDataResult.promotePartial(VariableManager.dumpError).result();
                 if(element.isPresent()) {
                     compound.put("value", element.get());
                 }

@@ -285,7 +285,7 @@ public class MapVariable extends IndexableVariable {
                                             .add("keys", keyList.getSecond())
                                             .add("values", valueList.getSecond())
                                             .build(ops.empty());
-                                    T errorElements = errorElementsDataResult.resultOrPartial(VariableManager::dumpError).orElse(null);
+                                    T errorElements = errorElementsDataResult.resultOrPartial(VariableManager.dumpError).orElse(null);
                                     MapVariable result = new MapVariable(mapType);
                                     if(keys.size() != values.size()) {
                                         String error = "Key and value list of map had different sizes; ";
