@@ -366,7 +366,7 @@ public class ImmediateValueCompiler {
                     if (encounteredPoint) {
                         return DoubleVariable.parse(reader.getString().substring(startIndex, reader.getCursor()) + "p0");
                     }
-                    if(c == 'L') {
+                    if(c == 'L' || c == 'l') {
                         reader.skip();
                         return LongVariable.parseHexadecimal(reader.getString().substring(startIndex + 2, reader.getCursor()));
                     }
@@ -387,7 +387,7 @@ public class ImmediateValueCompiler {
                         throw NUMBER_EMPTY_EXCEPTION.createWithContext(reader);
                     }
                     String value = reader.getString().substring(startIndex + 2, reader.getCursor());
-                    if(c == 'L') {
+                    if(c == 'L' || c == 'l') {
                         reader.skip();
                         return LongVariable.parseBinary(value);
                     }
@@ -405,7 +405,7 @@ public class ImmediateValueCompiler {
                         throw NUMBER_EMPTY_EXCEPTION.createWithContext(reader);
                     }
                     String value = reader.getString().substring(startIndex + 1, reader.getCursor());
-                    if(c == 'L') {
+                    if(c == 'L' || c == 'l') {
                         reader.skip();
                         return LongVariable.parseOctal(value);
                     }
@@ -438,7 +438,7 @@ public class ImmediateValueCompiler {
         if(encounteredPoint) {
             return DoubleVariable.parse(value);
         }
-        if(c == 'L') {
+        if(c == 'L' || c == 'l') {
             reader.skip();
             return LongVariable.parseDecimal(value);
         }
