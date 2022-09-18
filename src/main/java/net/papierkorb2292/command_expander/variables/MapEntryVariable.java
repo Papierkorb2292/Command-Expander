@@ -112,7 +112,7 @@ public class MapEntryVariable extends Variable {
 
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(2, MapEntryVariableType::new, (type, var) -> {
             if(!(var instanceof MapEntryVariable entry)) {
-                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("MapEntryVariable", var.getClass().getName());
+                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type.asString(), var == null ? "null" : var.getType().asString());
             }
             MapEntryVariableType entryType = (MapEntryVariableType)type;
             if(entryType.key == null || entryType.value == null) {

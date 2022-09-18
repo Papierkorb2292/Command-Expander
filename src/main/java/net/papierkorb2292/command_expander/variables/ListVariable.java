@@ -216,7 +216,7 @@ public class ListVariable extends IndexableVariable {
                 return result;
             }
             if(!(var instanceof ListVariable list)) {
-                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("ListVariable", var.getClass().getName());
+                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type.asString(), var == null ? "null" : var.getType().asString());
             }
             if(nullType) {
                 VariableType originalChildType = list.type.content;

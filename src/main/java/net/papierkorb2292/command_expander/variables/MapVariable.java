@@ -194,7 +194,7 @@ public class MapVariable extends IndexableVariable {
                     throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
                 }
                 if(!(list.type.content instanceof MapEntryVariable.MapEntryVariableType entryType)) {
-                    throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("MapVariable", var.getClass().getName());
+                    throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type, var.getType().asString());
                 }
                 if(keyType == null || valueType == null) {
                     mapType = new MapVariableType();
@@ -232,7 +232,7 @@ public class MapVariable extends IndexableVariable {
                 return map;
             }
             if(!(var instanceof MapVariable map)) {
-                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create("MapVariable", var.getClass().getName());
+                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type.asString(), var == null ? "null" : var.getType().asString());
             }
             if(keyType == null || valueType == null) {
                 mapType = new MapVariableType();
