@@ -253,7 +253,7 @@ public class ImmediateValueCompiler {
                         c == 'n' &&
                         reader.canRead(4) &&
                         reader.getString().startsWith("null", reader.getCursor()) && (
-                            !reader.canRead() || //The name might just start with null, like "null_"
+                            !reader.canRead(5) || //The name might just start with null, like "null_"
                             VariableIdentifier.isCharInvalidGeneral(reader.peek(4)))) {
                     reader.setCursor(reader.getCursor() + 4);
                     instructions.add(instructionIndex, Instructions.getLoadConstant(null));
