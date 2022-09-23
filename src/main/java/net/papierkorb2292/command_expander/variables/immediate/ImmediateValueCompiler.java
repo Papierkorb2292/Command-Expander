@@ -276,7 +276,9 @@ public class ImmediateValueCompiler {
                         int paramCount = 0;
                         if (c != ')') {
                             while (true) { // Compiling the parameters until closing parentheses are found
-                                addedInstructions += compileTerm(instructions, instructionIndex, reader);
+                                int parameterInstructions = compileTerm(instructions, instructionIndex, reader);
+                                addedInstructions += parameterInstructions;
+                                instructionIndex += parameterInstructions;
                                 reader.skipWhitespace();
                                 ++paramCount;
                                 if (!reader.canRead()) {
@@ -291,7 +293,6 @@ public class ImmediateValueCompiler {
                                 reader.expect(',');
                                 reader.skipWhitespace();
                             }
-                            instructionIndex += addedInstructions;
                         }
                         String namespace = identifier.namespace, path = identifier.path;
                         if (namespace.equals("minecraft") && path.equals("all")) {
