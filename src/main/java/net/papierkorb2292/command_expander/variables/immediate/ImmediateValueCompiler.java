@@ -238,9 +238,26 @@ public class ImmediateValueCompiler {
             instructions.add(instructionIndex, Instructions.getBuildListOrMap(length));
         } else {
             if(c == '"') {
-                String value = reader.readStringUntil('"');
                 // The value is a string
-                //TODO: Add String variable type and load value
+                String value = reader.readStringUntil('"');
+                instructions.add(instructionIndex, Instructions.getLoadConstant(new StringVariable(value)));
+            } else if(c == '\'') {
+                // The value is a char, which will be represented as short
+                if(!reader.canRead(2)) {
+                    throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
+                }
+                char value = reader.read();
+                if(value == '\'') {
+                    throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
+                }
+                if(value == '\\') {
+                    value = reader.read();
+                    if(!reader.canRead()) {
+                        throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
+                    }
+                }
+                reader.expect('\'');
+                instructions.add(instructionIndex, Instructions.getLoadConstant(new ShortVariable((short)value)));
             } else {
                 reader.setCursor(reader.getCursor() - 1);
                 if (c >= '0' && c <= '9' || c == '.') {
@@ -322,9 +339,12 @@ public class ImmediateValueCompiler {
      * <p>Reads a number in an immediate value and returns the corresponding variable. A number can be in decimal (902) binary (<b>0b</b>101),
      * octal (<b>0</b>76) or hexadecimal (<b>0x</b>F280) format. A number can have a leading sign.</p>
      * <p>Decimal and hexadecimal numbers can have radix points and are then parsed to a double if not further specified using a suffix.</p>
-     * Possible suffixes are: TODO: Add missing types
+     * Possible suffixes are:
      * <ul>
-     *     <li> "L" : An integer is parsed as long. It isn't read when a radix point is found</li>
+     *     <li> "L" : An integer is parsed as long. It isn't read when a radix point is found. Can also be used with hexadecimal, binary and octal numbers.</li>
+     *     <li> "B" : An integer is parsed as byte. It isn't read when a radix point is found</li>
+     *     <li> "S" : An integer is parsed as short. It isn't read when a radix point is found</li>
+     *     <li> "F" : An integer or double is parsed as float</li>
      * </ul>
      * @param reader The reader for the number, ending spaces aren't read
      * @return The number as variable
@@ -384,8 +404,8 @@ public class ImmediateValueCompiler {
                         }
                         c = reader.peek();
                     }
-                    if (empty) {
-                        throw NUMBER_EMPTY_EXCEPTION.createWithContext(reader);
+                    if (empty) { //The number is 0B and should be read as a byte
+                        return new ByteVariable((byte) 0);
                     }
                     String value = reader.getString().substring(startIndex + 2, reader.getCursor());
                     if(c == 'L' || c == 'l') {
@@ -436,12 +456,24 @@ public class ImmediateValueCompiler {
             throw NUMBER_EMPTY_EXCEPTION.createWithContext(reader);
         }
         String value = reader.getString().substring(startIndex, reader.getCursor());
+        if(c == 'F' || c == 'f') { //It doesn't matter whether a point was encountered for floats
+            reader.skip();
+            return FloatVariable.parse(value);
+        }
         if(encounteredPoint) {
             return DoubleVariable.parse(value);
         }
         if(c == 'L' || c == 'l') {
             reader.skip();
             return LongVariable.parseDecimal(value);
+        }
+        if(c == 'B' || c == 'b') {
+            reader.skip();
+            return ByteVariable.parse(value);
+        }
+        if(c == 'S' || c == 's') {
+            reader.skip();
+            return ShortVariable.parse(value);
         }
         return IntVariable.parseDecimal(value);
     }
@@ -480,11 +512,80 @@ public class ImmediateValueCompiler {
         return result;
     }
 
+    private static void registerFunction(String id, int parameters, Instruction instruction) {
+        FUNCTIONS.put(new FunctionDescriptor("minecraft:" + id, parameters), instruction);
+    }
+
     static {
-        FUNCTIONS.put(new FunctionDescriptor("minecraft:sin", 1), Instructions.SIN);
-        OPERATORS.put("+", new Operator(Instructions.ADD, 1));
-        OPERATORS.put("*", new Operator(Instructions.MUL, 2));
+        registerFunction("sin", 1, Instructions.SIN);
+        registerFunction("cos", 1, Instructions.COS);
+        registerFunction("tan", 1, Instructions.TAN);
+        registerFunction("asin", 1, Instructions.ASIN);
+        registerFunction("acos", 1, Instructions.ACOS);
+        registerFunction("atan", 1, Instructions.ATAN);
+        registerFunction("radians", 1, Instructions.TO_RADIANS);
+        registerFunction("degrees", 1, Instructions.TO_DEGREES);
+        registerFunction("exp", 1, Instructions.EXP);
+        registerFunction("log", 1, Instructions.LOG);
+        registerFunction("log10", 1, Instructions.LOG10);
+        registerFunction("sqrt", 1, Instructions.SQRT);
+        registerFunction("cbrt", 1, Instructions.CBRT);
+        registerFunction("ceil", 1, Instructions.CEIL);
+        registerFunction("floor", 1, Instructions.FLOOR);
+        registerFunction("rint", 1, Instructions.RINT);
+        registerFunction("sinh", 1, Instructions.SINH);
+        registerFunction("cosh", 1, Instructions.COSH);
+        registerFunction("tanh", 1, Instructions.TANH);
+        registerFunction("expm1", 1, Instructions.EXPM1);
+        registerFunction("log1p", 1, Instructions.LOG1P);
+        registerFunction("round", 1, Instructions.ROUND);
+        registerFunction("nextUp", 1, Instructions.NEXT_UP);
+        registerFunction("nextDown", 1, Instructions.NEXT_DOWN);
+        registerFunction("getExponent", 1, Instructions.GET_EXPONENT);
+        registerFunction("ulp", 1, Instructions.ULP);
+        registerFunction("signum", 1, Instructions.SIGNUM);
+        registerFunction("wrapDegrees", 1, Instructions.WRAP_DEGREES);
+        registerFunction("IEEEremainder", 2, Instructions.IEEE_REMAINDER);
+        registerFunction("atan2", 2, Instructions.ATAN2);
+        registerFunction("pow", 2, Instructions.POW);
+        registerFunction("hypot", 2, Instructions.HYPOT);
+        registerFunction("floorDiv", 2, Instructions.FLOOR_DIV);
+        registerFunction("floorMod", 2, Instructions.FLOOR_MOD);
+        registerFunction("min", 2, Instructions.MIN);
+        registerFunction("max", 2, Instructions.MAX);
+        registerFunction("copySign", 2, Instructions.COPY_SIGN);
+        registerFunction("nextAfter", 2, Instructions.NEXT_AFTER);
+        registerFunction("random", 0, Instructions.RANDOM);
+        registerFunction("abs", 2, Instructions.ABS);
+        registerFunction("multiplyHigh", 2, Instructions.MUTLIPLY_HIGH);
+        registerFunction("scalb", 2, Instructions.SCALB);
+        registerFunction("fma", 3, Instructions.FMA);
+        registerFunction("lerp", 3, Instructions.LERP);
+        registerFunction("getLerpProgress", 3, Instructions.GET_LERP_PROGRESS);
+        registerFunction("toString", 1, Instructions.TO_STRING);
+        registerFunction("collect", 1, Instructions.COLLECT);
+        registerFunction("key", 1, Instructions.KEY);
+        registerFunction("value", 1, Instructions.VALUE);
         OPERATORS.put("::", new Operator(Instructions.RANGE, 0));
+        OPERATORS.put("|", new Operator(Instructions.OR, 1));
+        OPERATORS.put("^", new Operator(Instructions.XOR, 2));
+        OPERATORS.put("&", new Operator(Instructions.AND, 3));
+        OPERATORS.put("<<", new Operator(Instructions.SHIFT_LEFT, 6));
+        OPERATORS.put(">>", new Operator(Instructions.SHIFT_RIGHT, 6));
+        OPERATORS.put("+", new Operator(Instructions.ADD, 7));
+        OPERATORS.put("-", new Operator(Instructions.SUB, 7));
+        OPERATORS.put("*", new Operator(Instructions.MUL, 8));
+        OPERATORS.put("/", new Operator(Instructions.DIV, 8));
+        // Order of operations:
+        // 0 (last) -> Range operator
+        // 1 -> Bitwise OR
+        // 2 -> Bitwise XOR
+        // 3 -> Bitwise AND
+        // (4 -> Equality) [NOT CURRENTLY IMPLEMENTED]
+        // (5 -> Relational) [NOT CURRENTLY IMPLEMENTED]
+        // 6 -> Shift
+        // 7 -> Additive
+        // 8 (first) -> Multiplicative
     }
 
     private static record FunctionDescriptor(String name, int parameters) { }

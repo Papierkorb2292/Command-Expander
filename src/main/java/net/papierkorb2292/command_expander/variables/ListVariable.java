@@ -215,6 +215,17 @@ public class ListVariable extends IndexableVariable {
                 result.value.addAll(Arrays.asList(castedChildren));
                 return result;
             }
+            if(var instanceof StringVariable string && ShortVariable.ShortVariableType.INSTANCE.instanceOf(listType.content)) {
+                ListVariable result = new ListVariable(listType);
+                String value = string.value;
+                result.value.addAll(Collections.nCopies(value.length(), null));
+                ShortVariable character = new ShortVariable();
+                for(int i = 0; i < value.length(); ++i) {
+                    character.setValue((short) value.charAt(i));
+                    result.value.set(i, listType.content.getTemplate().caster.cast(listType.content, character));
+                }
+                return result;
+            }
             if(!(var instanceof ListVariable list)) {
                 throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type.asString(), var == null ? "null" : var.getType().asString());
             }

@@ -429,6 +429,10 @@ public class VariableManager {
         registerType("entry", MapEntryVariable.MapEntryVariableType.TEMPLATE);
         registerType("long", LongVariable.LongVariableType.TEMPLATE);
         registerType("entity", EntityVariable.EntityVariableType.TEMPLATE);
+        registerType("byte", ByteVariable.ByteVariableType.TEMPLATE);
+        registerType("short", ShortVariable.ShortVariableType.TEMPLATE);
+        registerType("float", FloatVariable.FloatVariableType.TEMPLATE);
+        registerType("string", StringVariable.StringVariableType.TEMPLATE);
     }
 
     public static final Consumer<String> dumpError = error -> { };

@@ -21,6 +21,7 @@ import net.papierkorb2292.command_expander.commands.ExecuteVarAllPredicateCountH
 import net.papierkorb2292.command_expander.commands.VariableImmediateValueArgumentType;
 import net.papierkorb2292.command_expander.commands.VariablePathArgumentType;
 import net.papierkorb2292.command_expander.commands.VariableTypeArgumentType;
+import net.papierkorb2292.command_expander.variables.ByteVariable;
 import net.papierkorb2292.command_expander.variables.IntVariable;
 import net.papierkorb2292.command_expander.variables.Variable;
 import net.papierkorb2292.command_expander.variables.VariableHolder;
@@ -77,7 +78,7 @@ public abstract class ExecuteCommandMixin {
                                     destination.set(
                                             Either.left(new VariableHolder(requestResult ?
                                                     new IntVariable(result) :
-                                                    new IntVariable(success ? 1 : 0))), //TODO: Change success variable type to byte
+                                                    new ByteVariable((byte) (success ? 1 : 0)))),
                                             context);
                                 } catch (CommandSyntaxException e) {
                                     context.getSource().sendError(Texts.toText(e.getRawMessage()));

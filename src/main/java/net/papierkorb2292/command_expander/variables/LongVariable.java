@@ -3,9 +3,7 @@ package net.papierkorb2292.command_expander.variables;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
-import net.papierkorb2292.command_expander.variables.immediate.operator.AddableOperatorVariableType;
-import net.papierkorb2292.command_expander.variables.immediate.operator.MultipliableOperatorVariableType;
-import net.papierkorb2292.command_expander.variables.immediate.operator.NegatableOperatorVariableType;
+import net.papierkorb2292.command_expander.variables.immediate.operator.IntegerOperatorVariableType;
 
 public class LongVariable extends CriteriaBindableNumberVariable {
 
@@ -115,7 +113,7 @@ public class LongVariable extends CriteriaBindableNumberVariable {
         this.value = value;
     }
 
-    public static class LongVariableType implements CriteriaBindableNumberVariableType, AddableOperatorVariableType, MultipliableOperatorVariableType, NegatableOperatorVariableType {
+    public static class LongVariableType implements CriteriaBindableNumberVariableType, IntegerOperatorVariableType {
 
         public static final LongVariableType INSTANCE = new LongVariableType();
 
@@ -130,7 +128,7 @@ public class LongVariable extends CriteriaBindableNumberVariable {
 
         @Override
         public VariableType getNextLoweredType() {
-            return DoubleVariable.DoubleVariableType.INSTANCE;
+            return FloatVariable.FloatVariableType.INSTANCE;
         }
 
         @Override
@@ -167,6 +165,41 @@ public class LongVariable extends CriteriaBindableNumberVariable {
         @Override
         public Variable negateVariable(Variable value) {
             return new LongVariable(-value.longValue());
+        }
+
+        @Override
+        public Variable andVariables(Variable left, Variable right) {
+            return new LongVariable(left.longValue() & right.longValue());
+        }
+
+        @Override
+        public Variable shiftVariablesLeft(Variable left, int right) {
+            return new LongVariable(left.longValue() << right);
+        }
+
+        @Override
+        public Variable orVariables(Variable left, Variable right) {
+            return new LongVariable(left.longValue() | right.longValue());
+        }
+
+        @Override
+        public Variable shiftVariablesRight(Variable left, int right) {
+            return new LongVariable(left.longValue() >> right);
+        }
+
+        @Override
+        public Variable xorVariables(Variable left, Variable right) {
+            return new LongVariable(left.longValue() ^ right.longValue());
+        }
+
+        @Override
+        public Variable divideVariables(Variable left, Variable right) {
+            return new LongVariable(left.longValue() / right.longValue());
+        }
+
+        @Override
+        public Variable subtractVariables(Variable left, Variable right) {
+            return new LongVariable(left.longValue() - right.longValue());
         }
     }
 }

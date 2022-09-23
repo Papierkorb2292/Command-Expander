@@ -5,16 +5,16 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import net.papierkorb2292.command_expander.variables.immediate.operator.NumberOperatorVariableType;
 
-public class DoubleVariable extends CriteriaBindableNumberVariable {
+public class FloatVariable extends CriteriaBindableNumberVariable {
 
-    private double value = 0;
+    private float value = 0;
 
-    public DoubleVariable() { }
-    public DoubleVariable(double value) {
+    public FloatVariable() { }
+    public FloatVariable(float value) {
         this.value = value;
     }
 
-    public void setValue(double value) {
+    public void setValue(float value) {
         this.value = value;
     }
 
@@ -30,7 +30,7 @@ public class DoubleVariable extends CriteriaBindableNumberVariable {
 
     @Override
     public float floatValue() {
-        return (float)value;
+        return value;
     }
 
     @Override
@@ -40,26 +40,26 @@ public class DoubleVariable extends CriteriaBindableNumberVariable {
 
     @Override
     public String stringValue() {
-        return String.valueOf(value) + 'D';
+        return String.valueOf(value) + 'F';
     }
 
     @Override
     public Variable.VariableType getType() {
-        return DoubleVariableType.INSTANCE;
+        return FloatVariableType.INSTANCE;
     }
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof DoubleVariable && ((DoubleVariable)o).value == value;
+        return o instanceof FloatVariable && ((FloatVariable)o).value == value;
     }
 
     @Override
     public int hashCode() {
-        return Double.hashCode(value);
+        return Float.hashCode(value);
     }
 
-    public static DoubleVariable parse(String value) {
-        return new DoubleVariable(Double.parseDouble(value));
+    public static FloatVariable parse(String value) {
+        return new FloatVariable(Float.parseFloat(value));
     }
 
     @Override
@@ -72,13 +72,13 @@ public class DoubleVariable extends CriteriaBindableNumberVariable {
         this.value = value;
     }
 
-    public static class DoubleVariableType implements CriteriaBindableNumberVariableType, NumberOperatorVariableType {
+    public static class FloatVariableType implements CriteriaBindableNumberVariableType, NumberOperatorVariableType {
 
-        public static final DoubleVariableType INSTANCE = new DoubleVariableType();
+        public static final FloatVariableType INSTANCE = new FloatVariableType();
 
         @Override
-        public DoubleVariable createVariable() {
-            return new DoubleVariable();
+        public FloatVariable createVariable() {
+            return new FloatVariable();
         }
 
         public VariableTypeTemplate getTemplate() {
@@ -87,54 +87,53 @@ public class DoubleVariable extends CriteriaBindableNumberVariable {
 
         @Override
         public VariableType getNextLoweredType() {
-            return null;
+            return DoubleVariable.DoubleVariableType.INSTANCE;
         }
 
         @Override
         public String getName() {
-            return "double";
+            return "float";
         }
 
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(
-                0, () -> DoubleVariableType.INSTANCE,
-                (type, var) -> new DoubleVariable(var.doubleValue()),
+                0, () -> INSTANCE,
+                (type, var) -> new FloatVariable(var.floatValue()),
                 new VariableCodec() {
 
                     @Override
                     public <T> DataResult<T> write(Variable input, DynamicOps<T> ops, T prefix) {
-                        return ops.mergeToPrimitive(prefix, ops.createDouble(input.doubleValue()));
+                        return ops.mergeToPrimitive(prefix, ops.createFloat(input.floatValue()));
                     }
 
                     @Override
                     public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
-                        return ops.getNumberValue(input).map(value -> Pair.of(new DoubleVariable(value.doubleValue()), ops.empty()));
+                        return ops.getNumberValue(input).map(value -> Pair.of(new FloatVariable(value.floatValue()), ops.empty()));
                     }
                 });
 
         @Override
         public Variable addVariables(Variable left, Variable right) {
-            return new DoubleVariable(left.doubleValue() + right.doubleValue());
+            return new FloatVariable(left.floatValue() + right.floatValue());
         }
 
         @Override
         public Variable multiplyVariables(Variable left, Variable right) {
-            return new DoubleVariable(left.doubleValue() * right.doubleValue());
+            return new FloatVariable(left.floatValue() * right.floatValue());
         }
 
         @Override
         public Variable negateVariable(Variable value) {
-            return new DoubleVariable(-value.doubleValue());
+            return new FloatVariable(-value.floatValue());
         }
-
 
         @Override
         public Variable divideVariables(Variable left, Variable right) {
-            return new DoubleVariable(left.doubleValue() / right.doubleValue());
+            return new FloatVariable(left.floatValue() / right.floatValue());
         }
 
         @Override
         public Variable subtractVariables(Variable left, Variable right) {
-            return new DoubleVariable(left.doubleValue() - right.doubleValue());
+            return new FloatVariable(left.floatValue() - right.floatValue());
         }
     }
 }

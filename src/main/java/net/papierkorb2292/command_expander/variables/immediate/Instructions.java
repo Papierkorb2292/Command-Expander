@@ -5,78 +5,700 @@ import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.datafixers.util.Either;
+import it.unimi.dsi.fastutil.floats.FloatBinaryOperator;
+import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
 import net.minecraft.command.EntitySelector;
 import net.minecraft.text.Text;
 import net.minecraft.text.Texts;
+import net.minecraft.util.math.MathHelper;
 import net.papierkorb2292.command_expander.mixin_method_interfaces.VariableManagerContainer;
 import net.papierkorb2292.command_expander.variables.*;
-import net.papierkorb2292.command_expander.variables.immediate.operator.AddableOperatorVariableType;
-import net.papierkorb2292.command_expander.variables.immediate.operator.MultipliableOperatorVariableType;
-import net.papierkorb2292.command_expander.variables.immediate.operator.NegatableOperatorVariableType;
+import net.papierkorb2292.command_expander.variables.immediate.operator.*;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.function.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class Instructions {
 
-    public static final Instruction SIN = new Instruction(1, 1, false) {
+    private Instructions() { } //Prevent instantiations
+
+    public static final Instruction SIN = getDoubleUnaryInstruction(Math::sin);
+    public static final Instruction COS = getDoubleUnaryInstruction(Math::cos);
+    public static final Instruction TAN = getDoubleUnaryInstruction(Math::tan);
+    public static final Instruction ASIN = getDoubleUnaryInstruction(Math::asin);
+    public static final Instruction ACOS = getDoubleUnaryInstruction(Math::acos);
+    public static final Instruction ATAN = getDoubleUnaryInstruction(Math::atan);
+    public static final Instruction TO_RADIANS = getDoubleUnaryInstruction(Math::toRadians);
+    public static final Instruction TO_DEGREES = getDoubleUnaryInstruction(Math::toDegrees);
+    public static final Instruction EXP = getDoubleUnaryInstruction(Math::exp);
+    public static final Instruction LOG = getDoubleUnaryInstruction(Math::log);
+    public static final Instruction LOG10 = getDoubleUnaryInstruction(Math::log10);
+    public static final Instruction SQRT = getDoubleUnaryInstruction(Math::sqrt);
+    public static final Instruction CBRT = getDoubleUnaryInstruction(Math::cbrt);
+    public static final Instruction CEIL = getDoubleUnaryInstruction(Math::ceil);
+    public static final Instruction FLOOR = getDoubleUnaryInstruction(Math::floor);
+    public static final Instruction RINT = getDoubleUnaryInstruction(Math::rint);
+    public static final Instruction SINH = getDoubleUnaryInstruction(Math::sinh);
+    public static final Instruction COSH = getDoubleUnaryInstruction(Math::cosh);
+    public static final Instruction TANH = getDoubleUnaryInstruction(Math::tanh);
+    public static final Instruction EXPM1 = getDoubleUnaryInstruction(Math::expm1);
+    public static final Instruction LOG1P = getDoubleUnaryInstruction(Math::log1p);
+
+    public static Instruction getDoubleUnaryInstruction(DoubleUnaryOperator operator) {
+        return new DoubleUnaryInstruction(operator);
+    }
+
+    public static class DoubleUnaryInstruction extends Instruction {
+
+        private final DoubleUnaryOperator operator;
+
+        public DoubleUnaryInstruction(DoubleUnaryOperator operator) {
+            super(1, 1, false);
+            this.operator = operator;
+        }
+
         @Override
         public void apply(CalculationContext context) {
             Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
             stack.push(stack.pop().mapBoth(
-                    holder -> new VariableHolder(calcSin(holder.variable)),
-                    varStream -> varStream.map(this::calcSin)));
+                    holder -> new VariableHolder(calcOp(holder.variable)),
+                    varStream -> varStream.map(this::calcOp)));
         }
 
-        private DoubleVariable calcSin(Variable var) {
-            return new DoubleVariable(Math.sin(var.doubleValue()));
+        private DoubleVariable calcOp(Variable var) {
+            if(var == null ||!var.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE)) {
+                return new DoubleVariable();
+            }
+            return new DoubleVariable(operator.applyAsDouble(var.doubleValue()));
+        }
+    }
+
+    public static final Instruction IEEE_REMAINDER = getDoubleBinaryInstruction(Math::IEEEremainder);
+    public static final Instruction ATAN2 = getDoubleBinaryInstruction(Math::atan2);
+    public static final Instruction POW = getDoubleBinaryInstruction(Math::pow);
+    public static final Instruction HYPOT = getDoubleBinaryInstruction(Math::hypot);
+
+    public static Instruction getDoubleBinaryInstruction(DoubleBinaryOperator operator) {
+        return new DoubleBinaryInstruction(operator);
+    }
+
+    public static class DoubleBinaryInstruction extends Instruction {
+
+        private final ImmediateValue.CommandBiFunction applyFunction;
+
+        public DoubleBinaryInstruction(DoubleBinaryOperator op) {
+            super(2, 1, false);
+            this.applyFunction = (l, r) -> {
+                if(l == null || r == null) {
+                    return null;
+                }
+                return new DoubleVariable(op.applyAsDouble(l.doubleValue(), r.doubleValue()));
+            };
+        }
+
+        @Override
+        public void apply(CalculationContext context) {
+            applyToTwoParameters(context, applyFunction);
+        }
+    }
+
+    public static final Instruction ROUND = getFloatingPointUnaryInstruction(Math::round, Math::round);
+    public static final Instruction NEXT_UP = getFloatingPointUnaryInstruction(Math::nextUp, Math::nextUp);
+    public static final Instruction NEXT_DOWN = getFloatingPointUnaryInstruction(Math::nextDown, Math::nextDown);
+    public static final Instruction GET_EXPONENT = getFloatingPointUnaryInstruction(Math::getExponent, Math::getExponent);
+    public static final Instruction ULP = getFloatingPointUnaryInstruction(Math::ulp, Math::ulp);
+    public static final Instruction SIGNUM = getFloatingPointUnaryInstruction(Math::signum, Math::signum);
+
+    public static Instruction getFloatingPointUnaryInstruction(FloatUnaryOperator floatOp, DoubleUnaryOperator doubleOp) {
+        return new FloatingPointUnaryInstruction(floatOp, doubleOp);
+    }
+
+    public static class FloatingPointUnaryInstruction extends Instruction {
+
+        private final FloatUnaryOperator floatOp;
+        private final DoubleUnaryOperator doubleOp;
+
+        public FloatingPointUnaryInstruction(FloatUnaryOperator floatOp, DoubleUnaryOperator doubleOp) {
+            super(1, 1, false);
+            this.floatOp = floatOp;
+            this.doubleOp = doubleOp;
+        }
+
+        @Override
+        public void apply(CalculationContext context) {
+            Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
+            stack.push(stack.pop().mapBoth(
+                    holder -> new VariableHolder(calcOp(holder.variable)),
+                    varStream -> varStream.map(this::calcOp)));
+        }
+
+        private Variable calcOp(Variable var) {
+            if(var == null || !var.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE)) {
+                return null;
+            }
+            if(var.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE)) {
+                return new FloatVariable(floatOp.apply(var.floatValue()));
+            }
+            return new DoubleVariable(doubleOp.applyAsDouble(var.doubleValue()));
+        }
+    }
+
+    public static final Instruction COPY_SIGN = getFloatingPointBinaryInstruction(Math::copySign, Math::copySign);
+    public static final Instruction NEXT_AFTER = getFloatingPointBinaryInstruction(Math::nextAfter, Math::nextAfter);
+
+    public static Instruction getFloatingPointBinaryInstruction(FloatBinaryOperator floatOp, DoubleBinaryOperator doubleOp) {
+        return new FloatingPointBinaryInstruction(floatOp, doubleOp);
+    }
+
+    public static class FloatingPointBinaryInstruction extends Instruction {
+
+        private final ImmediateValue.CommandBiFunction applyFunction;
+
+        public FloatingPointBinaryInstruction(FloatBinaryOperator floatOp, DoubleBinaryOperator doubleOp) {
+            super(2, 1, false);
+            applyFunction = (l, r) -> {
+                if(l == null || !l.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE) || r == null || !r.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE)) {
+                    return null;
+                }
+                if(l.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE) && r.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE)) {
+                    return new FloatVariable(floatOp.apply(l.floatValue(), r.floatValue()));
+                }
+                return new DoubleVariable(doubleOp.applyAsDouble(l.doubleValue(), r.doubleValue()));
+            };
+        }
+
+        @Override
+        public void apply(CalculationContext context) {
+            applyToTwoParameters(context, applyFunction);
+        }
+    }
+
+    public static final Instruction FLOOR_DIV = getIntegerBinaryInstruction(Math::floorDiv, Math::floorDiv);
+    public static final Instruction FLOOR_MOD = getIntegerBinaryInstruction(Math::floorMod, Math::floorMod);
+
+    public static Instruction getIntegerBinaryInstruction(IntBinaryOperator intOp, LongBinaryOperator longOp) {
+        return new IntegerBinaryInstruction(intOp, longOp);
+    }
+
+    public static class IntegerBinaryInstruction extends Instruction {
+
+        private final ImmediateValue.CommandBiFunction applyFunction;
+
+        public IntegerBinaryInstruction(IntBinaryOperator intOp, LongBinaryOperator longOp) {
+            super(2, 1, false);
+            applyFunction = (l, r) -> {
+                if(l == null || !l.getType().instanceOf(LongVariable.LongVariableType.INSTANCE) || r == null || !r.getType().instanceOf(LongVariable.LongVariableType.INSTANCE)) {
+                    return null;
+                }
+                if(l.getType().instanceOf(IntVariable.IntVariableType.INSTANCE) && r.getType().instanceOf(IntVariable.IntVariableType.INSTANCE)) {
+                    return new IntVariable(intOp.applyAsInt(l.intValue(), r.intValue()));
+                }
+                return new LongVariable(longOp.applyAsLong(l.longValue(), r.longValue()));
+            };
+        }
+
+        @Override
+        public void apply(Instruction.CalculationContext context) {
+            applyToTwoParameters(context, applyFunction);
+        }
+    }
+
+    public static final Instruction MIN = getStandardNumberBinaryInstruction(Math::min, Math::min, Math::min, Math::min);
+    public static final Instruction MAX = getStandardNumberBinaryInstruction(Math::max, Math::max, Math::max, Math::max);
+
+    public static Instruction getStandardNumberBinaryInstruction(IntBinaryOperator intOp, LongBinaryOperator longOp, FloatBinaryOperator floatOp, DoubleBinaryOperator doubleOp) {
+        return new StandardNumberBinaryInstruction(intOp, longOp, floatOp, doubleOp);
+    }
+
+    public static class StandardNumberBinaryInstruction extends Instruction {
+
+        private final ImmediateValue.CommandBiFunction applyFunction;
+
+        public StandardNumberBinaryInstruction(IntBinaryOperator intOp, LongBinaryOperator longOp, FloatBinaryOperator floatOp, DoubleBinaryOperator doubleOp) {
+            super(2, 1, false);
+            applyFunction = (l, r) -> {
+                if(l == null || !l.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE) || r == null || !r.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE)) {
+                    return null;
+                }
+                if(l.getType().instanceOf(IntVariable.IntVariableType.INSTANCE) && r.getType().instanceOf(IntVariable.IntVariableType.INSTANCE)) {
+                    return new IntVariable(intOp.applyAsInt(l.intValue(), r.intValue()));
+                }
+                if(l.getType().instanceOf(LongVariable.LongVariableType.INSTANCE) && r.getType().instanceOf(LongVariable.LongVariableType.INSTANCE)) {
+                    return new LongVariable(longOp.applyAsLong(l.longValue(), r.longValue()));
+                }
+                if(l.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE) && r.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE)) {
+                    return new FloatVariable(floatOp.apply(l.floatValue(), r.floatValue()));
+                }
+                return new DoubleVariable(doubleOp.applyAsDouble(l.doubleValue(), r.doubleValue()));
+            };
+        }
+
+        @Override
+        public void apply(CalculationContext context) {
+            applyToTwoParameters(context, applyFunction);
+        }
+    }
+
+    public static final Instruction FMA = getFloatingPointTernayInstruction(Math::fma, Math::fma);
+    public static final Instruction LERP = getFloatingPointTernayInstruction(MathHelper::lerp, MathHelper::lerp);
+    public static final Instruction GET_LERP_PROGRESS = getFloatingPointTernayInstruction(MathHelper::getLerpProgress, MathHelper::getLerpProgress);
+
+    public static Instruction getFloatingPointTernayInstruction(FloatingPointTernaryInstruction.FloatTernaryOperator floatOp, FloatingPointTernaryInstruction.DoubleTernaryOperator doubleOp) {
+        return new FloatingPointTernaryInstruction(floatOp, doubleOp);
+    }
+
+    public static class FloatingPointTernaryInstruction extends Instruction {
+
+        private final FloatTernaryOperator floatOp;
+        private final DoubleTernaryOperator doubleOp;
+
+        public FloatingPointTernaryInstruction(FloatTernaryOperator floatOp, DoubleTernaryOperator doubleOp) {
+            super(3, 1, false);
+            this.floatOp = floatOp;
+            this.doubleOp = doubleOp;
+        }
+
+        @Override
+        public void apply(CalculationContext context) throws CommandSyntaxException {
+            Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
+            Either<VariableHolder, Stream<Variable>> c = stack.pop(), b = stack.pop(), a = stack.pop();
+            if (a.left().isPresent()) {
+                Variable aVar = a.left().get().variable;
+                if (b.left().isPresent()) {
+                    Variable bVar = b.left().get().variable;
+                    if (c.left().isPresent()) {
+                        stack.push(Either.left(new VariableHolder(calcOp(aVar, bVar, c.left().get().variable))));
+                        return;
+                    }
+                    if(c.right().isEmpty()) {
+                        throw new IllegalStateException("First (c) element of stack was an invalid Either when 'fma' was called. Neither left nor right were present");
+                    }
+                    stack.push(Either.right(c.right().get().map(cVar -> {
+                        try {
+                            return calcOp(aVar, bVar, cVar);
+                        } catch (CommandSyntaxException e) {
+                            context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                            return null;
+                        }
+                    }).filter(Objects::nonNull)));
+                    return;
+                }
+                if(b.right().isEmpty()) {
+                    throw new IllegalStateException("Second (b) element of stack was an invalid Either when 'fma' was called. Neither left nor right were present");
+                }
+                Stream<Variable> bStream = b.right().get();
+                stack.push(Either.right(c.map(
+                        cHolder -> {
+                            Variable cVar = cHolder.variable;
+                            return bStream.map(bVar -> {
+                                try {
+                                    return calcOp(aVar, bVar, cVar);
+                                } catch (CommandSyntaxException e) {
+                                    context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                                    return null;
+                                }
+                            }).filter(Objects::nonNull);
+                        },
+                        cStream -> {
+                            Iterator<Variable> bIterator = bStream.iterator(), cIterator = cStream.iterator();
+                            return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new AbstractIterator<>() {
+                                @Nullable
+                                @Override
+                                protected Variable computeNext() {
+                                    while (true) {
+                                        if (!(bIterator.hasNext() && cIterator.hasNext())) {
+                                            return endOfData();
+                                        }
+                                        try {
+                                            return calcOp(aVar, bIterator.next(), cIterator.next());
+                                        } catch (CommandSyntaxException e) {
+                                            context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                                        }
+                                    }
+                                }
+                            }, 0), false);
+                        }
+                )));
+            }
+            if(a.right().isEmpty()) {
+                throw new IllegalArgumentException("Third (a) element of stack was an invalid Either when 'fma' was called. Neither left nor right were present");
+            }
+            Stream<Variable> aStream = a.right().get();
+            context.stack().push(Either.right(b.map(
+                    bHolder -> {
+                        Variable bVar = bHolder.variable;
+                        return c.map(
+                                cHolder -> {
+                                    Variable cVar = cHolder.variable;
+                                    return aStream.map(aVar -> {
+                                        try {
+                                            return calcOp(aVar, bVar, cVar);
+                                        } catch (CommandSyntaxException e) {
+                                            context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                                            return null;
+                                        }
+                                    }).filter(Objects::nonNull);
+                                },
+                                cStream -> {
+                                    Iterator<Variable> aIterator = aStream.iterator(), cIterator = cStream.iterator();
+                                    return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new AbstractIterator<>() {
+                                        @Nullable
+                                        @Override
+                                        protected Variable computeNext() {
+                                            while (true) {
+                                                if (!(aIterator.hasNext() && cIterator.hasNext())) {
+                                                    return endOfData();
+                                                }
+                                                try {
+                                                    return calcOp(aIterator.next(), bVar, cIterator.next());
+                                                } catch (CommandSyntaxException e) {
+                                                    context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                                                }
+                                            }
+                                        }
+                                    }, 0), false);
+                                }
+                        );
+                    },
+                    bStream -> c.map(
+                            cHolder -> {
+                                Iterator<Variable> aIterator = aStream.iterator(), bIterator = bStream.iterator();
+                                Variable cVar = cHolder.variable;
+                                return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new AbstractIterator<>() {
+                                    @Nullable
+                                    @Override
+                                    protected Variable computeNext() {
+                                        while (true) {
+                                            if (!(aIterator.hasNext() && bIterator.hasNext())) {
+                                                return endOfData();
+                                            }
+                                            try {
+                                                return calcOp(aIterator.next(), bIterator.next(), cVar);
+                                            } catch (CommandSyntaxException e) {
+                                                context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                                            }
+                                        }
+                                    }
+                                }, 0), false);
+                            },
+                            cStream -> {
+                                Iterator<Variable> aIterator = aStream.iterator(), bIterator = bStream.iterator(), cIterator = cStream.iterator();
+                                return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new AbstractIterator<>() {
+                                    @Nullable
+                                    @Override
+                                    protected Variable computeNext() {
+                                        while (true) {
+                                            if (!(aIterator.hasNext() && bIterator.hasNext() && cIterator.hasNext())) {
+                                                return endOfData();
+                                            }
+                                            try {
+                                                return calcOp(aIterator.next(), bIterator.next(), cIterator.next());
+                                            } catch (CommandSyntaxException e) {
+                                                context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                                            }
+                                        }
+                                    }
+                                }, 0), false);
+                            }
+                    )
+            )));
+        }
+
+        private Variable calcOp(Variable a, Variable b, Variable c) throws CommandSyntaxException {
+            if(a == null || !a.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE)
+                    || b == null || !b.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE)
+                    || c == null || !c.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE)) {
+                throw INCOMPATIBLE_TYPES_EXCEPTION.create();
+            }
+            if(a.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE)
+                    && b.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE)
+                    && c.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE)) {
+                return new FloatVariable(floatOp.apply(a.floatValue(), b.floatValue(), c.floatValue()));
+            }
+            return new DoubleVariable(doubleOp.apply(a.doubleValue(), b.doubleValue(), c.doubleValue()));
+        }
+
+        @FunctionalInterface
+        public interface FloatTernaryOperator {
+            float apply(float a, float b, float c);
+        }
+
+        @FunctionalInterface
+        public interface DoubleTernaryOperator {
+            double apply(double a, double b, double c);
+        }
+    }
+
+    public static final Instruction ABS = new Instruction(2, 1, false) {
+        @Override
+        public void apply(CalculationContext context) {
+            Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
+            stack.push(stack.pop().mapBoth(
+                    holder -> new VariableHolder(calcOp(holder.variable)),
+                    varStream -> varStream.map(this::calcOp)));
+        }
+
+        private Variable calcOp(Variable var) {
+            if(var == null || !var.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE)) {
+                return null;
+            }
+            if(var.getType().instanceOf(IntVariable.IntVariableType.INSTANCE)) {
+                return new IntVariable(Math.abs(var.intValue()));
+            }
+            if(var.getType().instanceOf(LongVariable.LongVariableType.INSTANCE)) {
+                return new LongVariable(Math.abs(var.longValue()));
+            }
+            if(var.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE)) {
+                return new FloatVariable(Math.abs(var.floatValue()));
+            }
+            return new DoubleVariable(Math.abs(var.doubleValue()));
+        }
+    };
+
+    public static final Instruction MUTLIPLY_HIGH = new Instruction(2, 1, false) {
+
+        @Override
+        public void apply(CalculationContext context) {
+            applyToTwoParameters(context, (l, r) -> {
+                if(l == null || !l.getType().instanceOf(LongVariable.LongVariableType.INSTANCE) || r == null || !r.getType().instanceOf(LongVariable.LongVariableType.INSTANCE)) {
+                    return null;
+                }
+                return new LongVariable(Math.multiplyHigh(l.longValue(), r.longValue()));
+            });
+        }
+    };
+
+    public static final Instruction SCALB = new Instruction(2, 1, false) {
+
+        @Override
+        public void apply(CalculationContext context) {
+            applyToTwoParameters(context, (l, r) -> {
+                if(r == null || !r.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE) || l == null || !l.getType().instanceOf(IntVariable.IntVariableType.INSTANCE)) {
+                    return null;
+                }
+                if(l.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE)) {
+                    return new FloatVariable(Math.scalb(l.floatValue(), r.intValue()));
+                }
+                return new DoubleVariable(Math.scalb(l.doubleValue(), r.intValue()));
+            });
+        }
+    };
+
+    public static final Instruction TO_STRING = new Instruction(1, 1, false) {
+        @Override
+        public void apply(CalculationContext context) {
+            context.stack().push(context.stack().pop().mapBoth(
+                    holder -> new VariableHolder(calcString(holder.variable)),
+                    varStream -> varStream.map(this::calcString)));
+        }
+
+        private Variable calcString(Variable var) {
+            return new StringVariable(var.stringValue());
+        }
+    };
+
+    public static final Instruction COLLECT = new Instruction(1, 1, false) {
+
+        private static final IntVariable ZERO = new IntVariable();
+
+        @Override
+        public void apply(CalculationContext context) throws CommandSyntaxException {
+            Either<VariableHolder, Stream<Variable>> content = context.stack().pop();
+            if(content.left().isPresent()) {
+                Variable left = content.left().get().variable;
+                ListVariable result = new ListVariable(new ListVariable.ListVariableType(left == null ? null : left.getType()));
+                result.ensureIndexExists(ZERO);
+                result.set(ZERO, left);
+                context.stack().push(Either.left(new VariableHolder(result)));
+                return;
+            }
+            if(content.right().isEmpty()) {
+                throw new IllegalStateException("Invalid Either on stack when 'collect' was called. Neither left nor right were present");
+            }
+            Variable[] vars = content.right().get().toArray(Variable[]::new);
+            Variable.VariableType[] types = new Variable.VariableType[vars.length];
+            for(int i = 0; i < vars.length; ++i) {
+                Variable var = vars[i];
+                types[i] = var == null ? null : var.getType();
+            }
+            Variable.VariableType.LoweredType contentType = Variable.VariableType.getLoweredType(types);
+            if(contentType == null) {
+                throw INCOMPATIBLE_TYPES_EXCEPTION.create();
+            }
+            ListVariable result = new ListVariable(new ListVariable.ListVariableType(contentType.type));
+            IntVariable index = new IntVariable(vars.length - 1);
+            result.ensureIndexExists(index);
+            for(int i = 0; i < vars.length; ++i) {
+                index.setValue(i);
+                result.set(index, vars[i]);
+            }
+            context.stack().push(Either.left(new VariableHolder(result)));
+        }
+    };
+
+    public static final Instruction WRAP_DEGREES = new Instruction(1, 1, false) {
+        @Override
+        public void apply(CalculationContext context) {
+            Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
+            stack.push(stack.pop().mapBoth(
+                    holder -> new VariableHolder(calcOp(holder.variable)),
+                    varStream -> varStream.map(this::calcOp)));
+        }
+
+        private Variable calcOp(Variable var) {
+            if(var == null || !var.getType().instanceOf(DoubleVariable.DoubleVariableType.INSTANCE)) {
+                return null;
+            }
+            if(var.getType().instanceOf(IntVariable.IntVariableType.INSTANCE)) {
+                return new IntVariable(MathHelper.wrapDegrees(var.intValue()));
+            }
+            if(var.getType().instanceOf(FloatVariable.FloatVariableType.INSTANCE)) {
+                return new FloatVariable(MathHelper.wrapDegrees(var.floatValue()));
+            }
+            return new DoubleVariable(MathHelper.wrapDegrees(var.doubleValue()));
         }
     };
 
     private static final SimpleCommandExceptionType INCOMPATIBLE_TYPES_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Encountered incompatible types: Unable to find compatible lowered type"));
 
-    public static final Instruction ADD = new Instruction(2, 1, false) {
-        @Override
-        public void apply(CalculationContext context) {
-            applyToTwoParameters(context, (l, r) -> {
-                Variable.VariableType.LoweredType loweredType = Variable.VariableType.getLoweredType(l.getType(), r.getType());
-                if(loweredType == null) {
-                    throw INCOMPATIBLE_TYPES_EXCEPTION.create();
-                }
-                Variable.VariableType type = loweredType.type;
-                while(type != null && !(type instanceof AddableOperatorVariableType)) {
-                    type = type.getNextLoweredType();
-                }
-                if(type == null) {
-                    throw INCOMPATIBLE_TYPES_EXCEPTION.create();
-                }
-                return ((AddableOperatorVariableType)type).addVariables(VariableManager.castVariable(type, l), VariableManager.castVariable(type, r));
-            });
-        }
-    };
+    public static final Instruction ADD = getNumberOperatorInstruction(type -> type instanceof AddableOperatorVariableType, (type, left, right) -> ((AddableOperatorVariableType)type).addVariables(left, right));
+    public static final Instruction MUL = getNumberOperatorInstruction(type -> type instanceof MultipliableOperatorVariableType, (type, left, right) -> ((MultipliableOperatorVariableType)type).multiplyVariables(left, right));
+    public static final Instruction SUB = getNumberOperatorInstruction(type -> type instanceof SubtractableOperatorVariableType, (type, left, right) -> ((SubtractableOperatorVariableType)type).subtractVariables(left, right));
+    public static final Instruction DIV = getNumberOperatorInstruction(type -> type instanceof DividableOperatorVariableType, (type, left, right) -> ((DividableOperatorVariableType)type).divideVariables(left, right));
+    public static final Instruction OR = getNumberOperatorInstruction(type -> type instanceof BitwiseOrAbleOperatorVariableType, (type, left, right) -> ((BitwiseOrAbleOperatorVariableType)type).orVariables(left, right));
+    public static final Instruction AND = getNumberOperatorInstruction(type -> type instanceof BitwiseAndAbleOperatorVariableType, (type, left, right) -> ((BitwiseAndAbleOperatorVariableType)type).andVariables(left, right));
+    public static final Instruction XOR = getNumberOperatorInstruction(type -> type instanceof BitwiseXorAbleOperatorVariableType, (type, left, right) -> ((BitwiseXorAbleOperatorVariableType)type).xorVariables(left, right));
 
-    public static final Instruction MUL = new Instruction(2, 1, false) {
+    public static Instruction getNumberOperatorInstruction(Predicate<Variable.VariableType> typePredicate, NumberOperatorInstruction.Operator operator) {
+        return new NumberOperatorInstruction(typePredicate, operator);
+    }
+
+    public static class NumberOperatorInstruction extends Instruction {
+
+        private final Predicate<Variable.VariableType> typePredicate;
+        private final Operator operator;
+
+        public NumberOperatorInstruction(Predicate<Variable.VariableType> typePredicate, Operator operator) {
+            super(2, 1, false);
+            this.typePredicate = typePredicate;
+            this.operator = operator;
+        }
+
         @Override
         public void apply(CalculationContext context) {
             applyToTwoParameters(context, (l, r) -> {
+                if(l == null || r == null) {
+                    return null;
+                }
                 Variable.VariableType.LoweredType loweredType = Variable.VariableType.getLoweredType(l.getType(), r.getType());
                 if(loweredType == null) {
                     throw INCOMPATIBLE_TYPES_EXCEPTION.create();
                 }
                 Variable.VariableType type = loweredType.type;
-                while(type != null && !(type instanceof MultipliableOperatorVariableType)) {
+                while(type != null && !typePredicate.test(type)) {
                     type = type.getNextLoweredType();
                 }
                 if(type == null) {
                     throw INCOMPATIBLE_TYPES_EXCEPTION.create();
                 }
-                return ((MultipliableOperatorVariableType)type).multiplyVariables(VariableManager.castVariable(type, l), VariableManager.castVariable(type, r));
+                return operator.apply(type, VariableManager.castVariable(type, l), VariableManager.castVariable(type, r));
             });
         }
-    };
+
+        @FunctionalInterface
+        public interface Operator {
+            Variable apply(Variable.VariableType type, Variable left, Variable right);
+        }
+    }
+
+    public static final Instruction SHIFT_LEFT = getBitwiseShiftOperatorInstruction(type -> type instanceof BitwiseLeftShiftableOperatorVariableType, (type, left, right) -> ((BitwiseLeftShiftableOperatorVariableType)type).shiftVariablesLeft(left, right));
+    public static final Instruction SHIFT_RIGHT = getBitwiseShiftOperatorInstruction(type -> type instanceof BitwiseRightShiftableOperatorVariableType, (type, left, right) -> ((BitwiseRightShiftableOperatorVariableType)type).shiftVariablesRight(left, right));
+
+    public static Instruction getBitwiseShiftOperatorInstruction(Predicate<Variable.VariableType> typePredicate, BitwiseShiftOperatorInstruction.Operator operator) {
+        return new BitwiseShiftOperatorInstruction(typePredicate, operator);
+    }
+
+    public static class BitwiseShiftOperatorInstruction extends Instruction {
+
+        private final Predicate<Variable.VariableType> typePredicate;
+        private final Operator operator;
+
+        public BitwiseShiftOperatorInstruction(Predicate<Variable.VariableType> typePredicate, Operator operator) {
+            super(2, 1, false);
+            this.typePredicate = typePredicate;
+            this.operator = operator;
+        }
+
+        @Override
+        public void apply(CalculationContext context) {
+            applyToTwoParameters(context, (l, r) -> {
+                if(l == null || r == null) {
+                    return null;
+                }
+                Variable.VariableType type = l.getType();
+                while(type != null && !typePredicate.test(type)) {
+                    type = type.getNextLoweredType();
+                }
+                if(type == null) {
+                    throw INCOMPATIBLE_TYPES_EXCEPTION.create();
+                }
+                return operator.apply(type, VariableManager.castVariable(type, l), r.intValue());
+            });
+        }
+
+        @FunctionalInterface
+        public interface Operator {
+            Variable apply(Variable.VariableType type, Variable left, int right);
+        }
+    }
+
+    public static final Instruction KEY = getEntryGetChildInstruction(entry -> entry.key);
+    public static final Instruction VALUE = getEntryGetChildInstruction(entry -> entry.value);
+
+    public static Instruction getEntryGetChildInstruction(Function<MapEntryVariable, Variable> childGetter) {
+        return new EntryGetChildInstruction(childGetter);
+    }
+
+    public static class EntryGetChildInstruction extends Instruction {
+
+        private final Function<MapEntryVariable, Variable> childGetter;
+
+        public EntryGetChildInstruction(Function<MapEntryVariable, Variable> childGetter) {
+            super(1, 1, false);
+            this.childGetter = childGetter;
+        }
+
+        @Override
+        public void apply(CalculationContext context) throws CommandSyntaxException {
+            Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
+            Either<VariableHolder, Stream<Variable>> value = stack.pop();
+            if(value.left().isPresent()) {
+                stack.push(Either.left(new VariableHolder(calcOp(value.left().get().variable))));
+                return;
+            }
+            if(value.right().isEmpty()) {
+                throw new IllegalStateException("Invalid Either on stack when entry child getter was called. Neither left nor right were present");
+            }
+            stack.push(Either.right(value.right().get().map(var -> {
+                try {
+                    return calcOp(var);
+                } catch (CommandSyntaxException e) {
+                    context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                    return null;
+                }
+            }).filter(Objects::nonNull)));
+        }
+
+        private Variable calcOp(Variable var) throws CommandSyntaxException {
+            if(var instanceof MapEntryVariable entry) {
+                return childGetter.apply(entry);
+            }
+            throw INCOMPATIBLE_TYPES_EXCEPTION.create();
+        }
+    }
 
     public static final Instruction RANGE = new Instruction(2, 1, false) {
 
@@ -125,6 +747,12 @@ public class Instructions {
         }
     };
 
+    public static final Instruction RANDOM = new Instruction(0, 1, false) {
+        @Override
+        public void apply(CalculationContext context) {
+            context.stack().push(Either.left(new VariableHolder(new DoubleVariable(Math.random()))));
+        }
+    };
 
     public static final Instruction BUILD_MAP_ENTRY = new Instruction(2, 1, false) {
         @Override
