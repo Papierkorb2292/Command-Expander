@@ -566,6 +566,9 @@ public class ImmediateValueCompiler {
         registerFunction("collect", 1, Instructions.COLLECT);
         registerFunction("key", 1, Instructions.KEY);
         registerFunction("value", 1, Instructions.VALUE);
+        registerFunction("normalize", 1, Instructions.NORMALIZE);
+        registerFunction("cross", 2, Instructions.CROSS);
+        registerFunction("dot", 2, Instructions.DOT);
         OPERATORS.put("::", new Operator(Instructions.RANGE, 0));
         OPERATORS.put("|", new Operator(Instructions.OR, 1));
         OPERATORS.put("^", new Operator(Instructions.XOR, 2));

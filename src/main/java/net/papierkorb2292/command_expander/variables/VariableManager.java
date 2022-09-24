@@ -433,6 +433,7 @@ public class VariableManager {
         registerType("short", ShortVariable.ShortVariableType.TEMPLATE);
         registerType("float", FloatVariable.FloatVariableType.TEMPLATE);
         registerType("string", StringVariable.StringVariableType.TEMPLATE);
+        registerType("pos", PosVariable.PosVariableType.TEMPLATE);
     }
 
     public static final Consumer<String> dumpError = error -> { };

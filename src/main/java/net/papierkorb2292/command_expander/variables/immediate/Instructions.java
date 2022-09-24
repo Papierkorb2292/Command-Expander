@@ -700,6 +700,68 @@ public final class Instructions {
         }
     }
 
+    public static final Instruction CROSS = getPosBinaryInstruction(PosVariable.PosVariableType::calcCross);
+    public static final Instruction DOT = getPosBinaryInstruction(PosVariable.PosVariableType::calcDot);
+
+    public static Instruction getPosBinaryInstruction(TwoPosInstruction.Operator op) {
+        return new TwoPosInstruction(op);
+    }
+
+    public static class TwoPosInstruction extends Instruction {
+
+        private final ImmediateValue.CommandBiFunction applyFunction;
+
+        public TwoPosInstruction(Operator op) {
+            super(2, 1, false);
+            this.applyFunction = (l, r) -> {
+                if(!(l instanceof PosVariable leftPos && r instanceof PosVariable rightPos)) {
+                    return null;
+                }
+                return op.apply(leftPos, rightPos);
+            };
+        }
+
+        @Override
+        public void apply(CalculationContext context) {
+            applyToTwoParameters(context, applyFunction);
+        }
+
+        @FunctionalInterface
+        public interface Operator {
+            Variable apply(PosVariable left, PosVariable right);
+        }
+    }
+
+    public static final Instruction NORMALIZE = new Instruction(1, 1, false) {
+        @Override
+        public void apply(CalculationContext context) throws CommandSyntaxException {
+            Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
+            Either<VariableHolder, Stream<Variable>> value = stack.pop();
+            if(value.left().isPresent()) {
+                stack.push(Either.left(new VariableHolder(calcOp(value.left().get().variable))));
+                return;
+            }
+            if(value.right().isEmpty()) {
+                throw new IllegalStateException("Invalid Either on stack when 'normalize' was called. Neither left nor right were present");
+            }
+            stack.push(Either.right(value.right().get().map(var -> {
+                try {
+                    return calcOp(var);
+                } catch (CommandSyntaxException e) {
+                    context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                    return null;
+                }
+            }).filter(Objects::nonNull)));
+        }
+
+        private Variable calcOp(Variable var) throws CommandSyntaxException {
+            if(var instanceof PosVariable pos) {
+                return PosVariable.PosVariableType.calcNormalize(pos);
+            }
+            throw INCOMPATIBLE_TYPES_EXCEPTION.create();
+        }
+    };
+
     public static final Instruction RANGE = new Instruction(2, 1, false) {
 
         @Override
