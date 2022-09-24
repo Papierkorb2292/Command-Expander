@@ -1110,7 +1110,7 @@ public final class Instructions {
         public void apply(CalculationContext context) {
             List<Either<VariableHolder, Stream<Variable>>> data = new ArrayList<>(count);
             for(int i = 0; i < count; ++i) {
-                data.add(context.stack().pop());
+                data.add(0, context.stack().pop());
             }
             context.stack().push(Either.right(data.stream().flatMap(entry -> entry.map(
                     holder -> Stream.of(holder.variable),
