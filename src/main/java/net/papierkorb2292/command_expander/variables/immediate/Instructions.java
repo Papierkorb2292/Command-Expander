@@ -21,7 +21,7 @@ import java.util.function.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class Instructions {
+public final class Instructions {
 
     private Instructions() { } //Prevent instantiations
 
