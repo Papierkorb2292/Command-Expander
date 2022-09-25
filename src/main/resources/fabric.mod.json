@@ -16,6 +16,9 @@
   "entrypoints": {
     "main": [
       "net.papierkorb2292.command_expander.CommandExpander"
+    ],
+    "preLaunch": [
+      "com.llamalad7.mixinextras.MixinExtrasBootstrap::init"
     ]
   },
   "mixins": [
