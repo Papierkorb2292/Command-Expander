@@ -310,6 +310,8 @@ public class ImmediateValueCompiler {
                                 reader.expect(',');
                                 reader.skipWhitespace();
                             }
+                        } else {
+                            reader.skip();
                         }
                         String namespace = identifier.namespace, path = identifier.path;
                         if (namespace.equals("minecraft") && path.equals("all")) {
