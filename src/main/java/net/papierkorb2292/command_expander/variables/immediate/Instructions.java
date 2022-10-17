@@ -1048,7 +1048,7 @@ public final class Instructions {
                     }
                     ListVariable result = new ListVariable(new ListVariable.ListVariableType(loweredContentType.type));
                     IntVariable index = new IntVariable();
-                    index.setValue(length);
+                    index.setValue(length - 1);
                     result.ensureIndexExists(index);
                     for(int i = 0; i < length; ++i) {
                         index.setValue(i);
