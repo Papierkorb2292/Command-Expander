@@ -35,7 +35,7 @@ public class VariableManager {
     static final ArrayList<VariableTypeTemplate> TYPES_BY_ID = new ArrayList<>();
 
     public static final Dynamic2CommandExceptionType INCOMPATIBLE_TYPES_EXCEPTION = new Dynamic2CommandExceptionType((targetType, sourceType) -> new LiteralMessage(String.format("Variable of type '%s' cannot be converted to type '%s'", sourceType, targetType)));
-    public static final Dynamic2CommandExceptionType PARSE_EXCEPTION = new Dynamic2CommandExceptionType((targetType, source) -> new LiteralMessage(String.format("Variable value '%s' cannot be converted to type '%s'", source, targetType)));
+    public static final Dynamic2CommandExceptionType PARSE_EXCEPTION = new Dynamic2CommandExceptionType((source, targetType) -> new LiteralMessage(String.format("Variable value '%s' cannot be converted to type '%s'", source, targetType)));
     public static final DynamicCommandExceptionType UNKNOWN_TYPE_EXCEPTION = new DynamicCommandExceptionType(type -> new LiteralMessage(String.format("Encountered unknown type '%s' while parsing variable type", type)));
     public static final Dynamic2CommandExceptionType INVALID_CHILDREN_COUNT_EXCEPTION = new Dynamic2CommandExceptionType((expectedCount, retrievedCount) -> new LiteralMessage(String.format("Encountered unexpected children: Expected %s, got %s", expectedCount, retrievedCount)));
     public static final DynamicCommandExceptionType VARIABLE_NOT_FOUND_EXCEPTION = new DynamicCommandExceptionType(name -> new LiteralMessage(String.format("Unable to find variable '%s'", name)));
