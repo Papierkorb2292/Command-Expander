@@ -1,6 +1,7 @@
 package net.papierkorb2292.command_expander.variables;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.serialization.DataResult;
 
 import java.util.Deque;
 import java.util.LinkedList;
@@ -285,6 +286,33 @@ public abstract class Variable {
                 ++index;
             }
             return typeArray;
+        }
+
+        static DataResult<VariableType> decodeType(byte[] type, OffsetHolder offset) {
+            if(type.length - offset.value <= 0) {
+                return DataResult.error("Type in the data of variable has invalid length");
+            }
+            byte id = type[offset.value];
+            if(id < 0 || id >= VariableManager.TYPES_BY_ID.size()) {
+                return DataResult.error(String.format("Encountered invalid type id '%s' while decoding variable", id));
+            }
+            VariableTypeTemplate template = VariableManager.TYPES_BY_ID.get(id);
+            Variable.VariableType result = template.typeFactory.get();
+            ++offset.value;
+            DataResult<Variable.VariableType> parsedType = DataResult.success(result);
+            for(int i = 0; i < template.childrenCount; ++i) {
+                int finalI = i;
+                parsedType = parsedType.apply2((currentType, child) -> {
+                    currentType.setChild(finalI, child);
+                    return currentType;
+                }, decodeType(type, offset));
+            }
+            return parsedType;
+        }
+
+        class OffsetHolder {
+
+            public int value = 0;
         }
     }
 }

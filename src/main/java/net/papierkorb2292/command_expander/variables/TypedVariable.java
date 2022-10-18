@@ -43,38 +43,11 @@ public class TypedVariable {
     public static <T> DataResult<Pair<TypedVariable, T>> decode(T input, DynamicOps<T> ops) {
         DataResult<MapLike<T>> dataResult = ops.getMap(input);
         return dataResult.flatMap(map -> ops.getByteBuffer(map.get("type")).flatMap(typeBuffer -> {
-            DataResult<Variable.VariableType> typeResult = decodeType(typeBuffer.array(), new OffsetHolder());
+            DataResult<Variable.VariableType> typeResult = Variable.VariableType.decodeType(typeBuffer.array(), new Variable.VariableType.OffsetHolder());
             return typeResult.flatMap(type -> {
                 DataResult<Pair<VariableHolder, T>> var = type.getTemplate().codec.decode(ops, input, type);
                 return var.flatMap(variable -> DataResult.success(Pair.of(new TypedVariable(type, variable.getFirst().variable), variable.getSecond())));
             });
         }));
-    }
-
-    private static DataResult<Variable.VariableType> decodeType(byte[] type, OffsetHolder offset) {
-        if(type.length - offset.value <= 0) {
-            return DataResult.error("Type in the data of variable has invalid length");
-        }
-        byte id = type[offset.value];
-        if(id < 0 || id >= VariableManager.TYPES_BY_ID.size()) {
-            return DataResult.error(String.format("Encountered invalid type id '%s' while decoding variable", id));
-        }
-        VariableTypeTemplate template = VariableManager.TYPES_BY_ID.get(id);
-        Variable.VariableType result = template.typeFactory.get();
-        ++offset.value;
-        DataResult<Variable.VariableType> parsedType = DataResult.success(result);
-        for(int i = 0; i < template.childrenCount; ++i) {
-            int finalI = i;
-            parsedType = parsedType.apply2((currentType, child) -> {
-                currentType.setChild(finalI, child);
-                return currentType;
-            }, decodeType(type, offset));
-        }
-        return parsedType;
-    }
-
-    private static class OffsetHolder {
-
-        public int value = 0;
     }
 }
