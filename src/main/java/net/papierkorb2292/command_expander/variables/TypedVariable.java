@@ -9,9 +9,6 @@ import com.mojang.serialization.MapLike;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.Queue;
 
 public class TypedVariable {
 
@@ -28,26 +25,7 @@ public class TypedVariable {
     }
 
     public static <T> DataResult<T> encode(TypedVariable var, DynamicOps<T> ops, T prefix) {
-        Deque<Variable.VariableType> typeEncoderStack = new LinkedList<>();
-        Queue<VariableTypeTemplate> typeEncoderEncounteredTypes = new LinkedList<>();
-        int typeSize = 1;
-        typeEncoderStack.add(var.type);
-        while(!typeEncoderStack.isEmpty()) {
-            Variable.VariableType type = typeEncoderStack.pop();
-            VariableTypeTemplate typeTemplate = type.getTemplate();
-            typeEncoderEncounteredTypes.add(typeTemplate);
-            int childrenCount = typeTemplate.childrenCount;
-            typeSize += childrenCount;
-            for(int i = 0; i < childrenCount; ++i) {
-                typeEncoderStack.add(type.getChild(i));
-            }
-        }
-        byte[] typeArray = new byte[typeSize];
-        int index = 0;
-        while(!typeEncoderEncounteredTypes.isEmpty()) {
-            typeArray[index] = typeEncoderEncounteredTypes.remove().id;
-            ++index;
-        }
+        byte[] typeArray = Variable.VariableType.getEncoded(var.type);
         DataResult<T> result = var.type.getTemplate().codec.encode(var.var, ops, prefix);
         result = result.mapError(error -> "Error encoding variable: " + error);
         if(result.error().isPresent()) {

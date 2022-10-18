@@ -2,6 +2,10 @@ package net.papierkorb2292.command_expander.variables;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.Queue;
+
 public abstract class Variable {
 
     public abstract int intValue();
@@ -257,6 +261,30 @@ public abstract class Variable {
                 sb.append('>');
             }
             return sb.toString();
+        }
+
+        static byte[] getEncoded(VariableType type) {
+            Deque<VariableType> typeEncoderStack = new LinkedList<>();
+            Queue<VariableTypeTemplate> typeEncoderEncounteredTypes = new LinkedList<>();
+            int typeSize = 1;
+            typeEncoderStack.add(type);
+            while(!typeEncoderStack.isEmpty()) {
+                type = typeEncoderStack.pop();
+                VariableTypeTemplate typeTemplate = type.getTemplate();
+                typeEncoderEncounteredTypes.add(typeTemplate);
+                int childrenCount = typeTemplate.childrenCount;
+                typeSize += childrenCount;
+                for(int i = 0; i < childrenCount; ++i) {
+                    typeEncoderStack.add(type.getChild(i));
+                }
+            }
+            byte[] typeArray = new byte[typeSize];
+            int index = 0;
+            while(!typeEncoderEncounteredTypes.isEmpty()) {
+                typeArray[index] = typeEncoderEncounteredTypes.remove().id;
+                ++index;
+            }
+            return typeArray;
         }
     }
 }
