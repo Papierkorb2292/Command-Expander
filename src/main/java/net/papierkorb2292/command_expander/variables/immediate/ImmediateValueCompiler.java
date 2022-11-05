@@ -169,6 +169,7 @@ public class ImmediateValueCompiler {
             if(openParentheses != 0) {
                 throw OPEN_PARENTHESES_EXCEPTION.createWithContext(reader);
             }
+            int endCursor = reader.getCursor();
             reader.skipWhitespace();
             boolean isCasting = true;
             if(reader.canRead()) { // If an operator is present or the reader has reached the end, the content has to be a term
@@ -179,7 +180,6 @@ public class ImmediateValueCompiler {
             } else {
                 isCasting = false;
             }
-            int endCursor = reader.getCursor();
             reader.setCursor(cursor);
             if(isCasting) {
                 Variable.VariableType type = VariableManager.parseType(reader, true);
@@ -211,6 +211,9 @@ public class ImmediateValueCompiler {
                 // The list (or map) isn't empty or the value is a map entry
                 addedInstructions += compileTerm(instructions, instructionIndex, reader); // The first value is compiled
                 reader.skipWhitespace();
+                if(!reader.canRead()) {
+                    throw EXPECTED_VALUE_OR_END_OF_EXCEPTION.createWithContext(reader, "list");
+                }
                 if(reader.peek() == ':') {
                     // THe value is a map entry
                     reader.skip();
@@ -228,6 +231,9 @@ public class ImmediateValueCompiler {
                     addedInstructions += compileTerm(instructions, instructionIndex, reader);
                     ++length;
                     reader.skipWhitespace();
+                    if(!reader.canRead()) {
+                        throw EXPECTED_VALUE_OR_END_OF_EXCEPTION.createWithContext(reader, "list");
+                    }
                 }
                 reader.expect('}');
             } else {
