@@ -21,6 +21,7 @@ import net.minecraft.world.PersistentState;
 import net.minecraft.world.PersistentStateManager;
 import net.papierkorb2292.command_expander.CommandExpander;
 import net.papierkorb2292.command_expander.variables.path.VariablePath;
+import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.File;
 import java.util.*;
@@ -265,6 +266,11 @@ public class VariableManager {
                 }
                 if(!variableData.contains("type", 7)) {
                     throw VARIABLE_DATA_MISSING_ELEMENT_EXCEPTION.create(new Identifier(namespace, name), "type");
+                }
+
+                if(ArrayUtils.contains(variableData.getByteArray("type"), IteratorVariable.IteratorVariableType.TEMPLATE.id)) {
+                    // Iterators can be modified at any time, so the state is always marked dirty upon loading one
+                    markDirty();
                 }
 
                 DataResult<Pair<TypedVariable, NbtElement>> dataResult = TypedVariable.decode(variableDataElement, NbtOps.INSTANCE);
