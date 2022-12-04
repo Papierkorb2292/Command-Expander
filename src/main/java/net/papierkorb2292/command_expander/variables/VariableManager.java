@@ -434,6 +434,7 @@ public class VariableManager {
         registerType("float", FloatVariable.FloatVariableType.TEMPLATE);
         registerType("string", StringVariable.StringVariableType.TEMPLATE);
         registerType("pos", PosVariable.PosVariableType.TEMPLATE);
+        registerType("iterator", IteratorVariable.IteratorVariableType.TEMPLATE);
     }
 
     public static final Consumer<String> dumpError = error -> { };

@@ -102,18 +102,15 @@ public interface ImmediateValue {
                                     @Nullable
                                     @Override
                                     protected Variable computeNext() {
-                                        Variable result;
                                         while (true) {
                                             if (!(itLeft.hasNext() && itRight.hasNext())) {
                                                 return endOfData();
                                             }
                                             try {
-                                                result = apply(itLeft.next(), itRight.next());
+                                                return apply(itLeft.next(), itRight.next());
                                             } catch (CommandSyntaxException e) {
                                                 errorConsumer.accept(Texts.toText(e.getRawMessage()));
-                                                continue;
                                             }
-                                            return result;
                                         }
                                     }
                                 }, 0), false));

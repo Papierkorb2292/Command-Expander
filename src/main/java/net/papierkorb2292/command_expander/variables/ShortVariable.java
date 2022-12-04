@@ -1,8 +1,11 @@
 package net.papierkorb2292.command_expander.variables;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtShort;
 import net.papierkorb2292.command_expander.variables.immediate.operator.IntegerOperatorVariableType;
 
 public class ShortVariable extends CriteriaBindableNumberVariable {
@@ -56,6 +59,11 @@ public class ShortVariable extends CriteriaBindableNumberVariable {
     @Override
     public int hashCode() {
         return value;
+    }
+
+    @Override
+    public NbtElement toNbt() {
+        return NbtShort.of(value);
     }
 
     public static ShortVariable parse(String value) {

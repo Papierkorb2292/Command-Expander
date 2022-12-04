@@ -4,6 +4,8 @@ import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtHelper;
 
 import java.util.UUID;
 
@@ -56,6 +58,11 @@ public class EntityVariable extends Variable {
         return uuid.hashCode();
     }
 
+    @Override
+    public NbtElement toNbt() {
+        return NbtHelper.fromUuid(uuid);
+    }
+
     public static class EntityVariableType implements VariableType {
 
         public static final EntityVariableType INSTANCE = new EntityVariableType();
@@ -93,12 +100,12 @@ public class EntityVariable extends Variable {
                         if(list.value.size() == 4) {
                             return new EntityVariable(new UUID((long) list.value.get(0).intValue() << 32 | (long) list.value.get(1).intValue(), (long) list.value.get(3).intValue() << 32 | (long) list.value.get(4).intValue()));
                         }
-                        throw VariableManager.PARSE_EXCEPTION.create(var.stringValue(), type);
+                        throw VariableManager.PARSE_EXCEPTION.create(var.stringValue(), type.asString());
                     }
                     try {
                         return new EntityVariable(UUID.fromString(var.stringValue()));
                     } catch(IllegalArgumentException e) {
-                        throw VariableManager.PARSE_EXCEPTION.create(var.stringValue(), type);
+                        throw VariableManager.PARSE_EXCEPTION.create(var.stringValue(), type.asString());
                     }
                 },
                 new VariableCodec() {

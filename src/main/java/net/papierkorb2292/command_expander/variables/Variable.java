@@ -2,6 +2,8 @@ package net.papierkorb2292.command_expander.variables;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.DataResult;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtEnd;
 
 import java.util.Deque;
 import java.util.LinkedList;
@@ -34,6 +36,12 @@ public abstract class Variable {
 
     @Override
     public abstract int hashCode();
+
+    public abstract NbtElement toNbt() throws CommandSyntaxException;
+
+    public static NbtElement createNbt(Variable var) throws CommandSyntaxException {
+        return var == null ? NbtEnd.INSTANCE : var.toNbt();
+    }
 
     public boolean lowerAndEquals(Variable other) {
         VariableType.LoweredType type = VariableType.getLoweredType(getType(), other.getType());
@@ -240,6 +248,29 @@ public abstract class Variable {
             }
             return false;
 
+        }
+
+        default boolean typeEquals(VariableType other) {
+            if(other == null) {
+                return false;
+            }
+            VariableTypeTemplate template = this.getTemplate();
+            if(template != other.getTemplate()) {
+                return false;
+            }
+            for(int i = 0; i < template.childrenCount; i++) {
+                VariableType child = getChild(i), otherChild = other.getChild(i);
+                if(child == null) {
+                    if(otherChild != null) {
+                        return false;
+                    }
+                    continue;
+                }
+                if(!child.typeEquals(otherChild)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /**

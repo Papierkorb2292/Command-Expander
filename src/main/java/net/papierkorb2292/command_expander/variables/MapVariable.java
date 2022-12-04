@@ -4,6 +4,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 import net.papierkorb2292.command_expander.variables.immediate.operator.AddableOperatorVariableType;
 
 import java.util.*;
@@ -73,6 +75,15 @@ public class MapVariable extends IndexableVariable {
     @Override
     public int hashCode() {
         return value.hashCode();
+    }
+
+    @Override
+    public NbtElement toNbt() throws CommandSyntaxException {
+        NbtCompound result = new NbtCompound();
+        for(Map.Entry<Variable, Variable> entry : value.entrySet()) {
+            result.put(entry.getKey().stringValue(), Variable.createNbt(entry.getValue()));
+        }
+        return result;
     }
 
     @Override
@@ -213,6 +224,9 @@ public class MapVariable extends IndexableVariable {
                 MapVariable map = new MapVariable(mapType);
                 for(Variable content : list.value) {
                     MapEntryVariable entry = (MapEntryVariable)content;
+                    if(entry == null) {
+                        continue;
+                    }
                     Variable key = entry.value;
                     if(key != null) {
                         if(keyType == null) {

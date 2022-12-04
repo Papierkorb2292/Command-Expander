@@ -3,6 +3,8 @@ package net.papierkorb2292.command_expander.variables;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.minecraft.nbt.NbtByte;
+import net.minecraft.nbt.NbtElement;
 import net.papierkorb2292.command_expander.variables.immediate.operator.IntegerOperatorVariableType;
 
 public class ByteVariable extends CriteriaBindableNumberVariable {
@@ -56,6 +58,11 @@ public class ByteVariable extends CriteriaBindableNumberVariable {
     @Override
     public int hashCode() {
         return value;
+    }
+
+    @Override
+    public NbtElement toNbt() {
+        return NbtByte.of(value);
     }
 
     public static ByteVariable parse(String value) {

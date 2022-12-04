@@ -1,8 +1,11 @@
 package net.papierkorb2292.command_expander.variables;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.NbtString;
 import net.papierkorb2292.command_expander.variables.immediate.operator.AddableOperatorVariableType;
 
 public class StringVariable extends Variable {
@@ -56,6 +59,15 @@ public class StringVariable extends Variable {
     @Override
     public int hashCode() {
         return value.hashCode();
+    }
+
+    @Override
+    public NbtElement toNbt() {
+        return NbtString.of(value);
+    }
+
+    public String getString() {
+        return value;
     }
 
     public static class StringVariableType implements VariableType, AddableOperatorVariableType {

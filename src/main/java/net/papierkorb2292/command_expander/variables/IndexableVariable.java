@@ -26,10 +26,13 @@ public abstract class IndexableVariable extends Variable {
      */
     public abstract Stream<Variable> getIndices();
 
-    public Variable ensureIndexAndGet(Variable indexVar) throws CommandSyntaxException {
+    public Variable ensureIndexAndGetNonNull(Variable indexVar) throws CommandSyntaxException {
         indexVar = ensureIndexCompatible(indexVar);
         if (ensureIndexExists(indexVar)) {
-            return get(indexVar);
+            Variable value = get(indexVar);
+            if(value != null) {
+                return value;
+            }
         }
         Variable value = getContentType().createVariable();
         set(indexVar, value);

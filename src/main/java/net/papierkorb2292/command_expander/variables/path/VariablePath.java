@@ -10,6 +10,7 @@ import com.mojang.datafixers.util.Either;
 import net.minecraft.server.command.ServerCommandSource;
 import net.papierkorb2292.command_expander.CommandExpander;
 import net.papierkorb2292.command_expander.variables.*;
+import net.papierkorb2292.command_expander.variables.immediate.ImmediateValue;
 import net.papierkorb2292.command_expander.variables.immediate.ImmediateValueCompiler;
 
 import java.util.ArrayList;
@@ -24,8 +25,10 @@ public class VariablePath {
 
     public static final SimpleCommandExceptionType VARIABLE_NOT_INDEXABLE_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Variable is not indexable"));
     public static final SimpleCommandExceptionType VARIABLE_NOT_ENTRY_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Variable is not an entry of a map"));
+    public static final SimpleCommandExceptionType VARIABLE_NOT_POS_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Variable is not a position"));
     public static final SimpleCommandExceptionType MULTIPLE_VALUES_TO_SINGLE_VARIABLE_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Multiple variables can't be assigned to a single variable"));
     public static final SimpleCommandExceptionType UNABLE_TO_REMOVE_FROM_ENTRY_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Direct children of an entry can't be removed"));
+    public static final SimpleCommandExceptionType UNABLE_TO_REMOVE_FROM_POS_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Direct children of a position can't be removed"));
 
     private static final DynamicCommandExceptionType INVALID_FUNCTION_EXCEPTION = new DynamicCommandExceptionType(function -> new LiteralMessage(String.format("Invalid function '%s'", function)));
     private static final SimpleCommandExceptionType EXPECTED_END_OF_FUNCTION_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Expected end of function"));
@@ -38,7 +41,6 @@ public class VariablePath {
         this.base = base;
         this.accessors = getters;
     }
-    //TODO: Make set generate parent variables if they don't exist
     /**
      * Set the variable(s) that the path points to. If there's only one value (VariableHolder), all variables will be set to that value.
      * Otherwise, like with immediate values, values of the stream are consumed and assigned to a single variable each (in the order that the variables are found)
@@ -60,10 +62,14 @@ public class VariablePath {
             }
             throw MULTIPLE_VALUES_TO_SINGLE_VARIABLE_EXCEPTION.create();
         }
+        if(varBase.var == null) {
+            // The variable is implicitly created, so that its children can be set
+            varBase.var = varBase.type.createVariable();
+        }
         Either<VariableHolder, Stream<Variable>> current = Either.left(new VariableHolder(varBase.var));
         int lastGetter = accessors.length - 1;
         for (int i = 0; i < lastGetter; ++i) {
-            current = accessors[i].getChildren(current, cc);
+            current = accessors[i].getChildren(current, cc, true);
         }
         int result = accessors[lastGetter].setChildren(current, value, cc);
         manager.updateVariableBindingReferences(this, cc);
@@ -88,7 +94,7 @@ public class VariablePath {
         Either<VariableHolder, Stream<Variable>> current = Either.left(new VariableHolder(varBase.var));
         int lastGetter = accessors.length - 1;
         for (int i = 0; i < lastGetter; ++i) {
-            current = accessors[i].getChildren(current, cc);
+            current = accessors[i].getChildren(current, cc, false);
         }
         int result = accessors[lastGetter].removeChildren(current, cc);
         manager.removeVariableBindingReferences(this, cc);
@@ -129,16 +135,30 @@ public class VariablePath {
             reader.skip();
             if (base.namespace.equals("minecraft")) { // The base is now used as a function name until no more opening
                                                       // parentheses are found
-                if (base.path.equals("key")) {
-                    // All functions are inserted at the beginning, because they must either the first function
-                    // or in the parameter of previously parsed functions
-                    getters.add(0, PathChildrenAccessor.KeyAccessor.INSTANCE);
-                    ++functions;
-                } else if (base.path.equals("value")) {
-                    getters.add(0, PathChildrenAccessor.ValueAccessor.INSTANCE);
-                    ++functions;
-                } else {
-                    throw INVALID_FUNCTION_EXCEPTION.create(base.path);
+                // All functions are inserted at the beginning, because they must either the first function
+                // or in the parameter of previously parsed functions
+                switch (base.path) {
+                    case "key" -> {
+                        getters.add(0, PathChildrenAccessor.KeyAccessor.INSTANCE);
+                        ++functions;
+                    }
+                    case "value" -> {
+                        getters.add(0, PathChildrenAccessor.ValueAccessor.INSTANCE);
+                        ++functions;
+                    }
+                    case "x" -> {
+                        getters.add(0, PathChildrenAccessor.XAccessor.INSTANCE);
+                        ++functions;
+                    }
+                    case "y" -> {
+                        getters.add(0, PathChildrenAccessor.YAccessor.INSTANCE);
+                        ++functions;
+                    }
+                    case "z" -> {
+                        getters.add(0, PathChildrenAccessor.ZAccessor.INSTANCE);
+                        ++functions;
+                    }
+                    default -> throw INVALID_FUNCTION_EXCEPTION.create(base.path);
                 }
             } else {
                 throw INVALID_FUNCTION_EXCEPTION.create(base.path);
@@ -160,14 +180,26 @@ public class VariablePath {
             if (c == ')') {
                 --functions;
             } else {
+                reader.skipWhitespace();
                 if(!reader.canRead()) {
                     throw EXPECTED_INDEX_EXCEPTION.create();
                 }
-                getters.add(accessorIndex,
-                        reader.peek() == ']'
-                                ? PathChildrenAccessor.AllContentAccessor.INSTANCE
-                                : new PathChildrenAccessor.IndexedPathChildrenAccessor(ImmediateValueCompiler.compile(reader)));
-                reader.expect(']');
+                if (reader.peek() == ']') {
+                    reader.skip();
+                    getters.add(accessorIndex, PathChildrenAccessor.AllContentAccessor.INSTANCE);
+                } else {
+                    ImmediateValue value = ImmediateValueCompiler.compile(reader);
+                    reader.skipWhitespace();
+                    boolean compareMaps = false;
+                    if(reader.peek() == '?') {
+                        reader.skip();
+                        compareMaps = true;
+                        reader.skipWhitespace();
+                    }
+                    reader.expect(']');
+                    getters.add(accessorIndex, new PathChildrenAccessor.IndexedPathChildrenAccessor(value, compareMaps));
+
+                }
             }
             ++accessorIndex;
             backCursor = reader.getCursor();

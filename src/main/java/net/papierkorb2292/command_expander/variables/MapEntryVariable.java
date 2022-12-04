@@ -1,9 +1,12 @@
 package net.papierkorb2292.command_expander.variables;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.minecraft.nbt.NbtElement;
+import net.minecraft.text.Text;
 
 public class MapEntryVariable extends Variable {
 
@@ -62,6 +65,13 @@ public class MapEntryVariable extends Variable {
     @Override
     public int hashCode() {
         return 0;
+    }
+
+    private static final SimpleCommandExceptionType NOT_CONVERTIBLE_TO_NBT_EXCEPTION = new SimpleCommandExceptionType(Text.of("Map entries can't be converted to Nbt!"));
+
+    @Override
+    public NbtElement toNbt() throws CommandSyntaxException {
+        throw NOT_CONVERTIBLE_TO_NBT_EXCEPTION.create();
     }
 
     public static class MapEntryVariableType implements VariableType {

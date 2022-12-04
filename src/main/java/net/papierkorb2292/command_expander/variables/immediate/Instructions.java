@@ -14,6 +14,7 @@ import net.minecraft.util.math.MathHelper;
 import net.papierkorb2292.command_expander.mixin_method_interfaces.VariableManagerContainer;
 import net.papierkorb2292.command_expander.variables.*;
 import net.papierkorb2292.command_expander.variables.immediate.operator.*;
+import net.papierkorb2292.command_expander.variables.path.PathChildrenAccessor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -242,23 +243,25 @@ public final class Instructions {
         }
     }
 
-    public static final Instruction FMA = getFloatingPointTernayInstruction(Math::fma, Math::fma);
-    public static final Instruction LERP = getFloatingPointTernayInstruction(MathHelper::lerp, MathHelper::lerp);
-    public static final Instruction GET_LERP_PROGRESS = getFloatingPointTernayInstruction(MathHelper::getLerpProgress, MathHelper::getLerpProgress);
+    public static final Instruction FMA = getFloatingPointTernayInstruction(Math::fma, Math::fma, "fma");
+    public static final Instruction LERP = getFloatingPointTernayInstruction(MathHelper::lerp, MathHelper::lerp, "lerp");
+    public static final Instruction GET_LERP_PROGRESS = getFloatingPointTernayInstruction(MathHelper::getLerpProgress, MathHelper::getLerpProgress, "lerpProgress");
 
-    public static Instruction getFloatingPointTernayInstruction(FloatingPointTernaryInstruction.FloatTernaryOperator floatOp, FloatingPointTernaryInstruction.DoubleTernaryOperator doubleOp) {
-        return new FloatingPointTernaryInstruction(floatOp, doubleOp);
+    public static Instruction getFloatingPointTernayInstruction(FloatingPointTernaryInstruction.FloatTernaryOperator floatOp, FloatingPointTernaryInstruction.DoubleTernaryOperator doubleOp, String name) {
+        return new FloatingPointTernaryInstruction(floatOp, doubleOp, name);
     }
 
     public static class FloatingPointTernaryInstruction extends Instruction {
 
         private final FloatTernaryOperator floatOp;
         private final DoubleTernaryOperator doubleOp;
+        private final String name;
 
-        public FloatingPointTernaryInstruction(FloatTernaryOperator floatOp, DoubleTernaryOperator doubleOp) {
+        public FloatingPointTernaryInstruction(FloatTernaryOperator floatOp, DoubleTernaryOperator doubleOp, String name) {
             super(3, 1, false);
             this.floatOp = floatOp;
             this.doubleOp = doubleOp;
+            this.name = name;
         }
 
         @Override
@@ -274,7 +277,7 @@ public final class Instructions {
                         return;
                     }
                     if(c.right().isEmpty()) {
-                        throw new IllegalStateException("First (c) element of stack was an invalid Either when 'fma' was called. Neither left nor right were present");
+                        throw new IllegalStateException("First (c) element of stack was an invalid Either when '" + name + "' was called. Neither left nor right were present");
                     }
                     stack.push(Either.right(c.right().get().map(cVar -> {
                         try {
@@ -287,7 +290,7 @@ public final class Instructions {
                     return;
                 }
                 if(b.right().isEmpty()) {
-                    throw new IllegalStateException("Second (b) element of stack was an invalid Either when 'fma' was called. Neither left nor right were present");
+                    throw new IllegalStateException("Second (b) element of stack was an invalid Either when '" + name + "' was called. Neither left nor right were present");
                 }
                 Stream<Variable> bStream = b.right().get();
                 stack.push(Either.right(c.map(
@@ -324,7 +327,7 @@ public final class Instructions {
                 )));
             }
             if(a.right().isEmpty()) {
-                throw new IllegalArgumentException("Third (a) element of stack was an invalid Either when 'fma' was called. Neither left nor right were present");
+                throw new IllegalArgumentException("Third (a) element of stack was an invalid Either when '" + name + "' was called. Neither left nor right were present");
             }
             Stream<Variable> aStream = a.right().get();
             context.stack().push(Either.right(b.map(
@@ -655,20 +658,25 @@ public final class Instructions {
         }
     }
 
-    public static final Instruction KEY = getEntryGetChildInstruction(entry -> entry.key);
-    public static final Instruction VALUE = getEntryGetChildInstruction(entry -> entry.value);
+    public static final Instruction KEY = getAccessStaticChildInstruction(entry -> entry.key, PathChildrenAccessor.VariableCaster.MAP_ENTRY_VARIABLE_CASTER);
+    public static final Instruction VALUE = getAccessStaticChildInstruction(entry -> entry.value, PathChildrenAccessor.VariableCaster.MAP_ENTRY_VARIABLE_CASTER);
+    public static final Instruction POS_X = getAccessStaticChildInstruction(PosVariable::getX, PathChildrenAccessor.VariableCaster.POSITION_VARIABLE_CASTER);
+    public static final Instruction POS_Y = getAccessStaticChildInstruction(PosVariable::getY, PathChildrenAccessor.VariableCaster.POSITION_VARIABLE_CASTER);
+    public static final Instruction POS_Z = getAccessStaticChildInstruction(PosVariable::getZ, PathChildrenAccessor.VariableCaster.POSITION_VARIABLE_CASTER);
 
-    public static Instruction getEntryGetChildInstruction(Function<MapEntryVariable, Variable> childGetter) {
-        return new EntryGetChildInstruction(childGetter);
+    public static <ParentType extends Variable> Instruction getAccessStaticChildInstruction(Function<ParentType, Variable> childGetter, PathChildrenAccessor.VariableCaster<ParentType> caster) {
+        return new AccessStaticChildInstruction<>(childGetter, caster);
     }
 
-    public static class EntryGetChildInstruction extends Instruction {
+    public static class AccessStaticChildInstruction<ParentType extends Variable> extends Instruction {
 
-        private final Function<MapEntryVariable, Variable> childGetter;
+        private final Function<ParentType, Variable> childGetter;
+        private final PathChildrenAccessor.VariableCaster<ParentType> caster;
 
-        public EntryGetChildInstruction(Function<MapEntryVariable, Variable> childGetter) {
+        public AccessStaticChildInstruction(Function<ParentType, Variable> childGetter, PathChildrenAccessor.VariableCaster<ParentType> caster) {
             super(1, 1, false);
             this.childGetter = childGetter;
+            this.caster = caster;
         }
 
         @Override
@@ -693,10 +701,7 @@ public final class Instructions {
         }
 
         private Variable calcOp(Variable var) throws CommandSyntaxException {
-            if(var instanceof MapEntryVariable entry) {
-                return childGetter.apply(entry);
-            }
-            throw INCOMPATIBLE_TYPES_EXCEPTION.create();
+            return childGetter.apply(caster.cast(var));
         }
     }
 
@@ -871,23 +876,32 @@ public final class Instructions {
     public static final Instruction GET_ALL_CONTENTS = new Instruction(1, 1, false) {
 
         @Override
-        public void apply(CalculationContext context) {
+        public void apply(CalculationContext context) throws CommandSyntaxException {
             Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
-            stack.push(stack.pop().map(
-                    holder -> {
-                        if(!(holder.variable instanceof IndexableVariable indexable)) {
-                            context.errorConsumer().accept(Texts.toText(VALUE_NOT_INDEXABLE_EXCEPTION.create().getRawMessage()));
-                            return null;
-                        }
-                        return Either.right(indexable.getContents());
-                    },
-                    varStream -> Either.right(varStream.flatMap(var -> {
+            Either<VariableHolder, Stream<Variable>> value = stack.pop();
+            if(value.left().isPresent()) {
+                if(!(value.left().get().variable instanceof IndexableVariable indexable)) {
+                    if(value.left().get().variable != null) {
+                        throw VALUE_NOT_INDEXABLE_EXCEPTION.create();
+                    }
+                    stack.push(Either.right(Stream.of()));
+                    return;
+                }
+                stack.push(Either.right(indexable.getContents()));
+                return;
+            }
+            if(value.right().isEmpty()) {
+                throw new IllegalStateException("Invalid Either passed into all content getter. Neither left nor right were present");
+            }
+            stack.push(Either.right(value.right().get().flatMap(var -> {
                         if (!(var instanceof IndexableVariable indexable)) {
-                            context.errorConsumer().accept(Texts.toText(VALUE_NOT_INDEXABLE_EXCEPTION.create().getRawMessage()));
+                            if(var != null) {
+                                context.errorConsumer().accept(Texts.toText(VALUE_NOT_INDEXABLE_EXCEPTION.create().getRawMessage()));
+                            }
                             return null;
                         }
                         return indexable.getContents();
-                    }))));
+                    })));
         }
     };
 
@@ -904,7 +918,371 @@ public final class Instructions {
         }
     };
 
+    public static final Instruction GET_INDEXED_CONTENTS_COMPARE_MAPS = new Instruction(2, 1, false) {
+
+        @Override
+        public void apply(CalculationContext context) throws CommandSyntaxException {
+            Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
+            Either<VariableHolder, Stream<Variable>> right = stack.pop(), left = stack.pop();
+            if(left.left().isPresent()) {
+                if(left.left().get().variable == null) {
+                    stack.push(Either.right(Stream.of()));
+                    return;
+                }
+                if(!(left.left().get().variable instanceof IndexableVariable indexable)) {
+                    throw VALUE_NOT_INDEXABLE_EXCEPTION.create();
+                }
+                if(right.left().isPresent()) {
+                    stack.push(right.left().get().variable == null ? Either.right(Stream.of()) : PathChildrenAccessor.IndexedPathChildrenAccessor.get(indexable, right.left().get().variable, true));
+                    return;
+                }
+                if(right.right().isEmpty()) {
+                    throw new IllegalStateException("Index element was an invalid Either when a map comparing index was called. Neither left nor right were present");
+                }
+                stack.push(Either.right(right.right().get().flatMap(index -> {
+                    if(index == null) {
+                        return Stream.of();
+                    }
+                    try {
+                        return PathChildrenAccessor.IndexedPathChildrenAccessor.get(indexable, index, true)
+                                .map(
+                                        holder -> Stream.of(holder.variable),
+                                        stream -> stream
+                                );
+                    } catch (CommandSyntaxException e) {
+                        context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                        return Stream.of();
+                    }
+                })));
+                return;
+            }
+            if(left.right().isEmpty()) {
+                throw new IllegalStateException("Indexable element was an invalid Either when a map comparing index was called. Neither left nor right were present");
+            }
+            if(right.left().isPresent()) {
+                Variable index = right.left().get().variable;
+                if(index == null) {
+                    stack.push(Either.right(Stream.of()));
+                }
+                stack.push(Either.right(left.right().get().flatMap(var -> {
+                    if(!(var instanceof IndexableVariable indexable)) {
+                        if(var != null) {
+                            context.errorConsumer().accept(Texts.toText(VALUE_NOT_INDEXABLE_EXCEPTION.create().getRawMessage()));
+                        }
+                        return Stream.of();
+                    }
+                    try {
+                        return PathChildrenAccessor.IndexedPathChildrenAccessor.get(indexable, index, true)
+                                .map(
+                                        holder -> Stream.of(holder.variable),
+                                        stream -> stream
+                                );
+                    } catch (CommandSyntaxException e) {
+                        context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                        return Stream.of();
+                    }
+                })));
+                return;
+            }
+            if(right.right().isEmpty()) {
+                throw new IllegalStateException("Index element was an invalid Either when a map comparing index was called. Neither left nor right were present");
+            }
+            Iterator<Variable> indices = right.right().get().iterator(), vars = left.right().get().iterator();
+            stack.push(Either.right(StreamSupport.stream(Spliterators.spliteratorUnknownSize(new AbstractIterator<Either<VariableHolder, Stream<Variable>>>() {
+
+                @Override
+                protected Either<VariableHolder, Stream<Variable>> computeNext() {
+                    while (true) {
+                        if (!(indices.hasNext() && vars.hasNext())) {
+                            return endOfData();
+                        }
+                        Variable nextVar = vars.next();
+                        Variable nextIndex = indices.next();
+                        if(!(nextVar instanceof IndexableVariable indexable)) {
+                            if(nextVar != null) {
+                                context.errorConsumer().accept(Texts.toText(VALUE_NOT_INDEXABLE_EXCEPTION.create().getRawMessage()));
+                            }
+                            continue;
+                        }
+                        if(nextIndex == null) {
+                            continue;
+                        }
+                        try {
+                            return PathChildrenAccessor.IndexedPathChildrenAccessor.get(indexable, nextIndex, true);
+                        } catch (CommandSyntaxException e) {
+                            context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                        }
+                    }
+                }
+            }, 0), false)
+                    .flatMap(
+                            value -> value.map(
+                                    holder -> Stream.of(holder.variable),
+                                    stream -> stream
+                            )
+                    )));
+        }
+    };
+
+    public static final Instruction GET_RANGE_INDEXED_CONTENTS = new Instruction(2, 1, false) {
+
+        @Override
+        public void apply(CalculationContext context) throws CommandSyntaxException {
+            Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
+            Either<VariableHolder, Stream<Variable>> right = stack.pop(), left = stack.pop();
+            if(left.left().isPresent()) {
+                if(!(left.left().get().variable instanceof ListVariable list)) {
+                    throw VALUE_NOT_LIST_EXCEPTION.create();
+                }
+                if(right.left().isPresent()) {
+                    stack.push(Either.right(getValues(list, right.left().get().variable.intValue())));
+                    return;
+                }
+                if(right.right().isEmpty()) {
+                    throw new IllegalStateException("Index element was an invalid Either when a range index was called. Neither left nor right were present");
+                }
+                stack.push(Either.right(right.right().get().filter(Objects::nonNull).flatMap(index -> getValues(list, index.intValue()))));
+                return;
+            }
+            if(left.right().isEmpty()) {
+                throw new IllegalStateException("Indexable element was an invalid Either when a range index was called. Neither left nor right were present");
+            }
+            if(right.left().isPresent()) {
+                Variable indexVar = right.left().get().variable;
+                if(indexVar == null) {
+                    stack.push(Either.right(Stream.of()));
+                    return;
+                }
+                int index = indexVar.intValue();
+                stack.push(Either.right(left.right().get().flatMap(var -> {
+                    if(!(var instanceof ListVariable indexable)) {
+                        if(var != null) {
+                            context.errorConsumer().accept(Texts.toText(VALUE_NOT_LIST_EXCEPTION.create().getRawMessage()));
+                        }
+                        return Stream.of();
+                    }
+                    return getValues(indexable, index);
+                })));
+                return;
+            }
+            if(right.right().isEmpty()) {
+                throw new IllegalStateException("Index element was an invalid Either when a range index was called. Neither left nor right were present");
+            }
+            Iterator<Variable> indices = right.right().get().iterator(), vars = left.right().get().iterator();
+            stack.push(Either.right(StreamSupport.stream(Spliterators.spliteratorUnknownSize(new AbstractIterator<Stream<Variable>>() {
+
+                        @Override
+                        protected Stream<Variable> computeNext() {
+                            while (true) {
+                                if (!(indices.hasNext() && vars.hasNext())) {
+                                    return endOfData();
+                                }
+                                Variable nextVar = vars.next();
+                                Variable nextIndex = indices.next();
+                                if(!(nextVar instanceof ListVariable indexable)) {
+                                    if(nextVar != null) {
+                                        context.errorConsumer().accept(Texts.toText(VALUE_NOT_LIST_EXCEPTION.create().getRawMessage()));
+                                    }
+                                    continue;
+                                }
+                                if(nextIndex == null) {
+                                    continue;
+                                }
+                                return getValues(indexable, nextIndex.intValue());
+                            }
+                        }
+                    }, 0), false).flatMap(
+                            stream -> stream
+            )));
+        }
+
+        private Stream<Variable> getValues(ListVariable list, int rangeStart) {
+            return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new AbstractIterator<>() {
+
+                private final IntVariable index = new IntVariable(rangeStart);
+
+                @Nullable
+                @Override
+                protected Variable computeNext() {
+                    if(list.intValue() <= index.intValue()) {
+                        return endOfData();
+                    }
+                    Variable result = list.get(index);
+                    index.add(1);
+                    return result;
+                }
+            }, 0), false);
+        }
+    };
+
     private static final SimpleCommandExceptionType VALUE_NOT_INDEXABLE_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Value is not indexable"));
+    private static final SimpleCommandExceptionType VALUE_NOT_LIST_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Value is not a list"));
+
+    public static Instruction IT_COPY = new Instruction(1, 1, false) {
+        @Override
+        public void apply(CalculationContext context) throws CommandSyntaxException {
+            Either<VariableHolder, Stream<Variable>> value = context.stack().pop();
+            if(value.left().isPresent()) {
+                Variable var = value.left().get().variable;
+                if(!(var instanceof IteratorVariable it)) {
+                    throw VALUE_NOT_ITERATOR_EXCEPTION.create();
+                }
+                context.stack().push(Either.left(new VariableHolder(it.copy())));
+                return;
+            }
+            if(value.right().isEmpty()) {
+                throw new IllegalStateException("Invalid Either on stack when 'it_copy' was called. Neither left nor right were present");
+            }
+            context.stack().push(Either.right(value.right().get().flatMap(var -> {
+                if(!(var instanceof IteratorVariable it)) {
+                    context.errorConsumer().accept(Texts.toText(VALUE_NOT_ITERATOR_EXCEPTION.create().getRawMessage()));
+                    return Stream.empty();
+                }
+                return Stream.of(it.copy());
+            })));
+        }
+    };
+
+    public static Instruction IT_ALL = new Instruction(1, 1, true) {
+        @Override
+        public void apply(CalculationContext context) throws CommandSyntaxException {
+            Either<VariableHolder, Stream<Variable>> value = context.stack().pop();
+            if(value.left().isPresent()) {
+                Variable var = value.left().get().variable;
+                if(!(var instanceof IteratorVariable it)) {
+                    throw VALUE_NOT_ITERATOR_EXCEPTION.create();
+                }
+                context.stack().push(Either.right(it.all(context.errorConsumer())));
+                return;
+            }
+            if(value.right().isEmpty()) {
+                throw new IllegalStateException("Invalid Either on stack when 'it_all' was called. Neither left nor right were present");
+            }
+            context.stack().push(Either.right(value.right().get().flatMap(var -> {
+                if(!(var instanceof IteratorVariable it)) {
+                    context.errorConsumer().accept(Texts.toText(VALUE_NOT_ITERATOR_EXCEPTION.create().getRawMessage()));
+                    return Stream.empty();
+                }
+                return it.all(context.errorConsumer());
+            })));
+        }
+    };
+
+    private static final SimpleCommandExceptionType ITERATOR_EMPTY_EXCEPTION = new SimpleCommandExceptionType(Text.of("The iterator contains no next element"));
+
+    public static final Instruction IT_NEXT = new Instruction(1, 1, true) {
+        @Override
+        public void apply(CalculationContext context) throws CommandSyntaxException {
+            Either<VariableHolder, Stream<Variable>> value = context.stack().pop();
+            if(value.left().isPresent()) {
+                if(!(value.left().get().variable instanceof IteratorVariable iterator)) {
+                    throw VALUE_NOT_ITERATOR_EXCEPTION.create();
+                }
+                if(iterator.empty()) {
+                    throw ITERATOR_EMPTY_EXCEPTION.create();
+                }
+                context.stack().push(Either.left(
+                        new VariableHolder(iterator.next())
+                ));
+                return;
+            }
+            if(value.right().isPresent()) {
+                throw new IllegalStateException("Invalid Either on stack when 'it_next' was called. Neither left nor right were present");
+            }
+            context.stack().push(Either.right(value.right().get().flatMap(var -> {
+                try {
+                    if(!(var instanceof IteratorVariable iterator)) {
+                        throw VALUE_NOT_ITERATOR_EXCEPTION.create();
+                    }
+                    return Stream.of(iterator.next());
+                } catch(CommandSyntaxException e) {
+                    context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                    return Stream.of();
+                }
+            })));
+        }
+    };
+
+    public static final Instruction IT_MULTIPLE_NEXT = new Instruction(1, 2, true) {
+        @Override
+        public void apply(CalculationContext context) throws CommandSyntaxException {
+            Either<VariableHolder, Stream<Variable>>
+                    countValue = context.stack().pop(),
+                    iteratorValue = context.stack().pop();
+            if(iteratorValue.left().isPresent()) {
+                if(iteratorValue.left().get().variable == null) {
+                    context.stack().push(Either.right(Stream.of()));
+                }
+                if(!(iteratorValue.left().get().variable instanceof IteratorVariable iterator)) {
+                    throw VALUE_NOT_ITERATOR_EXCEPTION.create();
+                }
+                if(countValue.left().isPresent()) {
+                    Variable count = countValue.left().get().variable;
+                    context.stack().push(Either.right(count == null ? Stream.of() : iterator.next(count.intValue(), context.errorConsumer())));
+                    return;
+                }
+                if(countValue.right().isEmpty()) {
+                    throw new IllegalArgumentException("First (count) element of stack was an invalid Either when 'it_next' was called. Neither left nor right were present");
+                }
+                context.stack().push(Either.right(countValue.right().get().flatMap(
+                        count -> count == null
+                                ? Stream.of()
+                                : iterator.next(count.intValue(), context.errorConsumer()))));
+                return;
+            }
+            if(iteratorValue.right().isEmpty()) {
+                throw new IllegalArgumentException("Second (iterator) element of stack was an invalid Either when 'it_next' was called. Neither left nor right were present");
+            }
+            Stream<Variable> iteratorStream = iteratorValue.right().get();
+            context.stack().push(Either.right(countValue.map(
+                    countHolder -> {
+                        if (countHolder.variable == null) {
+                            return Stream.of();
+                        }
+                        int count = countHolder.variable.intValue();
+                        return iteratorStream.flatMap(var -> {
+                            if (!(var instanceof IteratorVariable iterator)) {
+                                if (var != null) {
+                                    context.errorConsumer().accept(Texts.toText(VALUE_NOT_ITERATOR_EXCEPTION.create().getRawMessage()));
+                                }
+                                return Stream.of();
+                            }
+                            return iterator.next(count, context.errorConsumer());
+                        });
+                    },
+                    countStream -> {
+                        Iterator<Variable> countIterator = countStream.iterator(), iteratorIterator = iteratorStream.iterator();
+                        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new AbstractIterator<Stream<Variable>>() {
+                            @Nullable
+                            @Override
+                            protected Stream<Variable> computeNext() {
+                                while (true) {
+                                    if (!(countIterator.hasNext() && iteratorIterator.hasNext())) {
+                                        return endOfData();
+                                    }
+                                    try {
+                                        Variable iteratorVar = iteratorIterator.next();
+                                        Variable countVar = countIterator.next();
+                                        if (iteratorVar == null || countVar == null) {
+                                            continue;
+                                        }
+                                        if (!(iteratorVar instanceof IteratorVariable iterator)) {
+                                            throw VALUE_NOT_ITERATOR_EXCEPTION.create();
+                                        }
+                                        return iterator.next(countVar.intValue(), context.errorConsumer());
+
+                                    } catch (CommandSyntaxException e) {
+                                        context.errorConsumer().accept(Texts.toText(e.getRawMessage()));
+                                    }
+                                }
+                            }
+                        }, 0), false).flatMap(stream -> stream);
+                    }
+            )));
+        }
+    };
+
+    private static final SimpleCommandExceptionType VALUE_NOT_ITERATOR_EXCEPTION = new SimpleCommandExceptionType(new LiteralMessage("Value is not an iterator"));
 
     public static Instruction getCast(Variable.VariableType type) {
         return new Cast(type);

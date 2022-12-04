@@ -19,21 +19,21 @@ import java.util.stream.Stream;
 public abstract class Instruction {
 
     public final int consumedStackEntries, suppliedStackEntries;
-    public final boolean usesCommandContext;
+    public final boolean notPreDeterminable;
 
     /**
      * @param consumedStackEntries The amount of entries taken from the stack. Important for finding instructions this instruction
      *                             depends on for optimization.
      * @param suppliedStackEntries The amount of entries put onto the stack. Important for finding instructions depending
      *                             on this instruction for optimization.
-     * @param usesCommandContext Whether the action of the instruction uses the {@link CommandContext} of the command
-     *                           the immediate value is used in. If the context is used, the instruction cannot
-     *                           be optimized.
+     * @param notPreDeterminable When this is set to 'true', the instruction shouldn't be evaluated as part of the
+     *                           optimization process. For example, an entity selector can't be optimized, because the result
+     *                           depends on when it's evaluated.
      */
-    public Instruction(int consumedStackEntries, int suppliedStackEntries, boolean usesCommandContext) {
+    public Instruction(int consumedStackEntries, int suppliedStackEntries, boolean notPreDeterminable) {
         this.consumedStackEntries = consumedStackEntries;
         this.suppliedStackEntries = suppliedStackEntries;
-        this.usesCommandContext = usesCommandContext;
+        this.notPreDeterminable = notPreDeterminable;
     }
 
     /**

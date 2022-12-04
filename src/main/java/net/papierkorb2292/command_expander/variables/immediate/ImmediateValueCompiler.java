@@ -116,14 +116,26 @@ public class ImmediateValueCompiler {
             if(reader.peek() == ']') { // No index exists, all contents of the variable are returned
                 reader.skip();
                 instructions.add(instructionIndex + addedInstructions, Instructions.GET_ALL_CONTENTS);
-                ++addedInstructions;
             } else { // The index is compiled with the compileTerm method
+                Instruction targetInstruction = Instructions.GET_INDEXED_CONTENTS;
+                reader.skipWhitespace();
                 addedInstructions += compileTerm(instructions, instructionIndex + addedInstructions, reader);
                 reader.skipWhitespace();
+                if (reader.canRead(2) && reader.peek() == '.' && reader.peek(1) == '.') {
+                    reader.skip();
+                    reader.skip();
+                    targetInstruction = Instructions.GET_RANGE_INDEXED_CONTENTS;
+                } else {
+                    if (reader.canRead() && reader.peek() == '?') {
+                        reader.skip();
+                        targetInstruction = Instructions.GET_INDEXED_CONTENTS_COMPARE_MAPS;
+                        reader.skipWhitespace();
+                    }
+                }
                 reader.expect(']');
-                instructions.add(instructionIndex + addedInstructions, Instructions.GET_INDEXED_CONTENTS);
-                ++addedInstructions;
+                instructions.add(instructionIndex + addedInstructions, targetInstruction);
             }
+            ++addedInstructions;
             cursor = reader.getCursor();
             reader.skipWhitespace();
         }
@@ -379,6 +391,28 @@ public class ImmediateValueCompiler {
                         empty = false;
                         if (c == '.') {
                             if (encounteredPoint) {
+                                if(reader.peek(-1) == '.') {
+                                    // The previous character was the point
+                                    int cursor = reader.getCursor() - 1;
+                                    reader.skip();
+                                    reader.skipWhitespace();
+                                    if(reader.canRead() && reader.peek() == ']') {
+                                        // The number is a range in an index
+                                        reader.setCursor(cursor);
+                                        break;
+                                    }
+                                } else if(reader.canRead(2) && reader.peek(1) == '.') {
+                                    // The next character is the point
+                                    int cursor = reader.getCursor();
+                                    reader.skip();
+                                    reader.skip();
+                                    reader.skipWhitespace();
+                                    if(reader.canRead() && reader.peek() == ']') {
+                                        // The number is a range in an index
+                                        reader.setCursor(cursor);
+                                        break;
+                                    }
+                                }
                                 throw ENCOUNTERED_MULTIPLE_RADIX_POINTS_EXCEPTION.createWithContext(reader);
                             }
                             encounteredPoint = true;
@@ -448,6 +482,28 @@ public class ImmediateValueCompiler {
         while(c >= '0' && c <= '9' || c == '.') {
             if(c == '.') {
                 if(encounteredPoint) {
+                    if(reader.peek(-1) == '.') {
+                        // The previous character was the first point
+                        int cursor = reader.getCursor() - 1;
+                        reader.skip();
+                        reader.skipWhitespace();
+                        if(reader.canRead() && reader.peek() == ']') {
+                            // The number is a range in an index
+                            reader.setCursor(cursor);
+                            break;
+                        }
+                    } else if(reader.canRead(2) && reader.peek(1) == '.') {
+                        // The next character is the second point
+                        int cursor = reader.getCursor();
+                        reader.skip();
+                        reader.skip();
+                        reader.skipWhitespace();
+                        if(reader.canRead() && reader.peek() == ']') {
+                            // The number is a range in an index
+                            reader.setCursor(cursor);
+                            break;
+                        }
+                    }
                     throw ENCOUNTERED_MULTIPLE_RADIX_POINTS_EXCEPTION.createWithContext(reader);
                 }
                 encounteredPoint = true;
@@ -577,6 +633,13 @@ public class ImmediateValueCompiler {
         registerFunction("normalize", 1, Instructions.NORMALIZE);
         registerFunction("cross", 2, Instructions.CROSS);
         registerFunction("dot", 2, Instructions.DOT);
+        registerFunction("it_copy", 1, Instructions.IT_COPY);
+        registerFunction("it_all", 1, Instructions.IT_ALL);
+        registerFunction("it_next", 1, Instructions.IT_NEXT);
+        registerFunction("it_next", 2, Instructions.IT_MULTIPLE_NEXT);
+        registerFunction("x", 1, Instructions.POS_X);
+        registerFunction("y", 1, Instructions.POS_Y);
+        registerFunction("z", 1, Instructions.POS_Z);
         OPERATORS.put("::", new Operator(Instructions.RANGE, 0));
         OPERATORS.put("|", new Operator(Instructions.OR, 1));
         OPERATORS.put("^", new Operator(Instructions.XOR, 2));

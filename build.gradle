@@ -14,6 +14,7 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+	//mavenLocal() // For bad times
 	maven { url 'https://jitpack.io' }
 }
 
@@ -26,9 +27,14 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	include("com.github.LlamaLad7:MixinExtras:0.0.12")
-	implementation("com.github.LlamaLad7:MixinExtras:0.0.12")
-	annotationProcessor("com.github.LlamaLad7:MixinExtras:0.0.12")
+	//include("com.github.LlamaLad7:MixinExtras:0.1.0-rc5")
+	//implementation("com.github.LlamaLad7:MixinExtras:0.1.0-rc5")
+	//annotationProcessor("com.github.LlamaLad7:MixinExtras:0.1.0-rc5")
+
+	// Using own fork for now, because it adds more support for 'throw' and 'return' statements.
+	include("com.github.Papierkorb2292:MixinExtras:master-SNAPSHOT")
+	implementation("com.github.Papierkorb2292:MixinExtras:master-SNAPSHOT")
+	annotationProcessor("com.github.Papierkorb2292:MixinExtras:master-SNAPSHOT")
 }
 
 processResources {

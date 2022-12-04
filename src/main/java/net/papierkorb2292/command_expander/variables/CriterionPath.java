@@ -244,7 +244,7 @@ public class CriterionPath {
 
                 private CriteriaBindableNumberVariable getVariable() {
                     try {
-                        return (CriteriaBindableNumberVariable)BoundMapVariable.this.variable.ensureIndexAndGet(player);
+                        return (CriteriaBindableNumberVariable)BoundMapVariable.this.variable.ensureIndexAndGetNonNull(player);
                     } catch (CommandSyntaxException e) {
                         CommandExpander.LOGGER.error("Error getting variable when updating map bound to criterion: ", e);
                         return null;
@@ -361,6 +361,33 @@ public class CriterionPath {
                     throw UNEXPECTED_VARIABLE_TYPE_EXCEPTION.create(parent.getType());
                 }
                 return entry.value;
+            }
+        },
+        POS_X {
+            @Override
+            public Variable getChild(Variable parent, @Nullable Variable value) throws CommandSyntaxException {
+                if(!(parent instanceof PosVariable pos)) {
+                    throw UNEXPECTED_VARIABLE_TYPE_EXCEPTION.create(parent.getType());
+                }
+                return pos.getX();
+            }
+        },
+        POS_Y {
+            @Override
+            public Variable getChild(Variable parent, @Nullable Variable value) throws CommandSyntaxException {
+                if(!(parent instanceof PosVariable pos)) {
+                    throw UNEXPECTED_VARIABLE_TYPE_EXCEPTION.create(parent.getType());
+                }
+                return pos.getY();
+            }
+        },
+        POS_Z {
+            @Override
+            public Variable getChild(Variable parent, @Nullable Variable value) throws CommandSyntaxException {
+                if(!(parent instanceof PosVariable pos)) {
+                    throw UNEXPECTED_VARIABLE_TYPE_EXCEPTION.create(parent.getType());
+                }
+                return pos.getZ();
             }
         };
 

@@ -31,7 +31,7 @@ public interface PathChildrenAccessor {
      * or {@link VariablePath#remove}, the returned value becomes the new current value that is given to the next accessor.
      * @throws CommandSyntaxException An error happened when getting the children.
      */
-    Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException;
+    Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc, boolean createIfMissing) throws CommandSyntaxException;
 
     /**
      * Sets all children that the accessor points to of the current value to the specified value
@@ -78,13 +78,15 @@ public interface PathChildrenAccessor {
     class IndexedPathChildrenAccessor implements PathChildrenAccessor {
 
         private final ImmediateValue index;
+        private final boolean compareMaps;
 
-        public IndexedPathChildrenAccessor(ImmediateValue index) {
+        public IndexedPathChildrenAccessor(ImmediateValue index, boolean compareMaps) {
             this.index = index;
+            this.compareMaps = compareMaps;
         }
 
         @Override
-        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc, boolean createIfMissing) throws CommandSyntaxException {
             return index.calculate(cc).map(
                     indexHolder -> {
                         Variable singleIndex = indexHolder.variable;
@@ -96,7 +98,7 @@ public interface PathChildrenAccessor {
                                         return null;
                                     }
                                     try {
-                                        return get(indexable, singleIndex);
+                                        return get(indexable, singleIndex, compareMaps);
                                     } catch (CommandSyntaxException e) {
                                         cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                         return null;
@@ -109,7 +111,7 @@ public interface PathChildrenAccessor {
                                         return null;
                                     }
                                     try {
-                                        return get(indexable, singleIndex);
+                                        return get(indexable, singleIndex, compareMaps);
                                     } catch (CommandSyntaxException e) {
                                         cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                         return null;
@@ -127,7 +129,7 @@ public interface PathChildrenAccessor {
                                 }
                                 return Either.right(indexStream.map(singleIndex -> {
                                     try {
-                                        return get(indexable, singleIndex);
+                                        return get(indexable, singleIndex, compareMaps);
                                     } catch (CommandSyntaxException e) {
                                         cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                         return null;
@@ -152,7 +154,7 @@ public interface PathChildrenAccessor {
                                             return null;
                                         }
                                         try {
-                                            return get(indexable, indexIterator.next());
+                                            return get(indexable, indexIterator.next(), compareMaps);
                                         } catch (CommandSyntaxException e) {
                                             cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                             return null;
@@ -176,7 +178,7 @@ public interface PathChildrenAccessor {
                 }
                 if (indexEither.left().isPresent()) {
                     if (value.left().isPresent()) {
-                        return set(indexable, indexEither.left().get().variable, value.left().get().variable);
+                        return set(indexable, indexEither.left().get().variable, value.left().get().variable, compareMaps);
                     }
                     throw VariablePath.MULTIPLE_VALUES_TO_SINGLE_VARIABLE_EXCEPTION.create();
                 }
@@ -188,7 +190,7 @@ public interface PathChildrenAccessor {
                         valueHolder -> indexes.mapToInt(index ->
                         {
                             try {
-                                return set(indexable, index, valueHolder.variable);
+                                return set(indexable, index, valueHolder.variable, compareMaps);
                             } catch (CommandSyntaxException e) {
                                 cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                 return 0;
@@ -199,7 +201,7 @@ public interface PathChildrenAccessor {
                             int changed = 0;
                             while (indexIterator.hasNext() && valueIterator.hasNext()) {
                                 try {
-                                    changed += set(indexable, indexIterator.next(), valueIterator.next());
+                                    changed += set(indexable, indexIterator.next(), valueIterator.next(), compareMaps);
                                 } catch (CommandSyntaxException e) {
                                     cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                 }
@@ -220,7 +222,7 @@ public interface PathChildrenAccessor {
                                     return 0;
                                 }
                                 try {
-                                    return set(indexable, indexHolder.variable, valueHolder.variable);
+                                    return set(indexable, indexHolder.variable, valueHolder.variable, compareMaps);
                                 } catch (CommandSyntaxException e) {
                                     cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                     return 0;
@@ -235,7 +237,7 @@ public interface PathChildrenAccessor {
                                         continue;
                                     }
                                     try {
-                                        changed += set(indexable, indexHolder.variable, valueIterator.next());
+                                        changed += set(indexable, indexHolder.variable, valueIterator.next(), compareMaps);
                                     } catch (CommandSyntaxException e) {
                                         cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                     }
@@ -254,7 +256,7 @@ public interface PathChildrenAccessor {
                                         continue;
                                     }
                                     try {
-                                        changed += set(indexable, indexIterator.next(), valueLeft);
+                                        changed += set(indexable, indexIterator.next(), valueLeft, compareMaps);
                                     } catch (CommandSyntaxException e) {
                                         cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                     }
@@ -270,7 +272,7 @@ public interface PathChildrenAccessor {
                                         continue;
                                     }
                                     try {
-                                        changed += set(indexable, indexIterator.next(), valueIterator.next());
+                                        changed += set(indexable, indexIterator.next(), valueIterator.next(), compareMaps);
                                     } catch (CommandSyntaxException e) {
                                         cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                     }
@@ -289,14 +291,14 @@ public interface PathChildrenAccessor {
                     throw VariablePath.VARIABLE_NOT_INDEXABLE_EXCEPTION.create();
                 }
                 if (indexEither.left().isPresent()) {
-                    return remove(indexable, indexEither.left().get().variable);
+                    return remove(indexable, indexEither.left().get().variable, compareMaps);
                 }
                 if(indexEither.right().isEmpty()) {
                     throw new IllegalArgumentException("Invalid Either returned from index immediate value. Neither left nor right were present");
                 }
                 return indexEither.right().get().mapToInt(index -> {
                     try {
-                        return remove(indexable, index);
+                        return remove(indexable, index, compareMaps);
                     } catch (CommandSyntaxException e) {
                         cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                         return 0;
@@ -316,7 +318,7 @@ public interface PathChildrenAccessor {
                                 return 0;
                             }
                             try {
-                                return remove(indexable, index);
+                                return remove(indexable, index, compareMaps);
                             } catch (CommandSyntaxException e) {
                                 cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                                 return 0;
@@ -333,7 +335,7 @@ public interface PathChildrenAccessor {
                                 continue;
                             }
                             try {
-                                removed += remove(indexable, indexIterator.next());
+                                removed += remove(indexable, indexIterator.next(), compareMaps);
                             } catch (CommandSyntaxException e) {
                                 cc.getSource().sendError(Texts.toText(e.getRawMessage()));
                             }
@@ -370,11 +372,11 @@ public interface PathChildrenAccessor {
          * @return The value(s)
          * @throws CommandSyntaxException An error happened when casting the index
          */
-        private static Either<VariableHolder, Stream<Variable>> get(IndexableVariable indexable, Variable index) throws CommandSyntaxException {
-            if(indexable instanceof ListVariable list && list.getContentType() instanceof MapVariable.MapVariableType && index instanceof MapVariable map) {
+        public static Either<VariableHolder, Stream<Variable>> get(IndexableVariable indexable, Variable index, boolean compareMaps) throws CommandSyntaxException {
+            if(compareMaps && indexable instanceof ListVariable list && list.getContentType() instanceof MapVariable.MapVariableType && index instanceof MapVariable map) {
                 return Either.right(StreamSupport.stream(Spliterators.spliteratorUnknownSize(getIndicesOfMapInList(list, map), 0), false).map(indexable::get));
             }
-            return Either.left(new VariableHolder(indexable.get(indexable.ensureIndexCompatible(index))));
+            return Either.left(new VariableHolder(indexable.ensureIndexAndGetNonNull(index)));
         }
 
         /**
@@ -386,9 +388,9 @@ public interface PathChildrenAccessor {
          * @return The amount of set values
          * @throws CommandSyntaxException An error happened when casting the index or value
          */
-        private static int set(IndexableVariable indexable, Variable index, Variable value) throws CommandSyntaxException {
+        public static int set(IndexableVariable indexable, Variable index, Variable value, boolean compareMaps) throws CommandSyntaxException {
             Variable castedValue = VariableManager.castVariable(indexable.getContentType(), value);
-            if(indexable instanceof ListVariable list && list.getContentType() instanceof MapVariable.MapVariableType && index instanceof MapVariable mapIndex) {
+            if(compareMaps && indexable instanceof ListVariable list && list.getContentType() instanceof MapVariable.MapVariableType && index instanceof MapVariable mapIndex) {
                 Iterator<IntVariable> indexIterator = getIndicesOfMapInList(list, mapIndex);
                 int changed = 0;
                 while(indexIterator.hasNext()) {
@@ -409,8 +411,8 @@ public interface PathChildrenAccessor {
          * @return The amount of removed values
          * @throws CommandSyntaxException An error happened when casting the index
          */
-        private static int remove(IndexableVariable indexable, Variable index) throws CommandSyntaxException {
-            if(indexable instanceof ListVariable list && list.getContentType() instanceof MapVariable.MapVariableType && index instanceof MapVariable mapIndex) {
+        public static int remove(IndexableVariable indexable, Variable index, boolean compareMaps) throws CommandSyntaxException {
+            if(compareMaps && indexable instanceof ListVariable list && list.getContentType() instanceof MapVariable.MapVariableType && index instanceof MapVariable mapIndex) {
                 Iterator<IntVariable> indexIterator = getIndicesOfMapInList(list, mapIndex);
                 int removed = 0;
                 while(indexIterator.hasNext()) {
@@ -431,13 +433,13 @@ public interface PathChildrenAccessor {
          * If the IntVariable of the resulting iterator is changed, the current index used by the iterator also changes to that value
          * @throws IllegalArgumentException If the content of the list is not of type {@link MapVariable.MapVariableType}
          */
-        private static Iterator<IntVariable> getIndicesOfMapInList(ListVariable list, MapVariable map) {
+        public static Iterator<IntVariable> getIndicesOfMapInList(ListVariable list, MapVariable map) {
             if(!(list.getContentType() instanceof MapVariable.MapVariableType)) {
                 throw new IllegalArgumentException("The list content type must be a map");
             }
             return new AbstractIterator<>() {
 
-                private final IntVariable index = new IntVariable();
+                private final IntVariable index = new IntVariable(-1);
                 private final int size = list.intValue();
 
                 @Nullable
@@ -445,7 +447,8 @@ public interface PathChildrenAccessor {
                 protected IntVariable computeNext() {
                     for(int i = index.intValue() + 1; i < size; ++i) {
                         index.setValue(i);
-                        if(map.existingKeysMatch((MapVariable) list.get(index))) {
+                        Variable var = list.get(index);
+                        if(var != null && map.existingKeysMatch((MapVariable) var)) {
                             return index;
                         }
                     }
@@ -456,8 +459,9 @@ public interface PathChildrenAccessor {
     }
 
     /**
-     * Used by {@link KeyAccessor#setChildren} and {@link ValueAccessor#setChildren} to set all children of a map entry to a value:
-     * What child to set is defined by the setter, it gets the entry and value and should also cast the value to the type of the child.<br/>
+     * A static variable child is a child, that has its own accessor. The parent variable usually has a constant amount of children.
+     * Used by {@link KeyAccessor#setChildren}, {@link ValueAccessor#setChildren}, {@link XAccessor#setChildren} and similar to set all children of a map entry or position to a value:
+     * What child to set is defined by the setter, it gets the variable and value and should also cast the value to the type of the child.<br/>
      * If only one current value is present and only one value to set it to is present, the setter is invoked on that current value and the value to set it to. <br/>
      * If only one current value is present, but multiple values to set it to are present, {@link VariablePath#MULTIPLE_VALUES_TO_SINGLE_VARIABLE_EXCEPTION} is thrown.<br/>
      * If multiple current values are present and only one value to set it to is present, the setter is invoked on each current value and the value to set it to.<br/>
@@ -466,16 +470,16 @@ public interface PathChildrenAccessor {
      * @param value The value to set the children to
      * @param cc The command context for sending errors
      * @param setter The setter to use to set the children
+     * @param parentCaster Casts the {@link Variable} from the current value to the correct type or throws an exception, if that is not possible
+     * @param <ParentType> The parent contained in the current value. This is a {@link Variable}, <i>not</i> {@link Variable.VariableType}. For example {@code <MapEntryVariable>}
      * @return The amount of children set
-     * @throws CommandSyntaxException The single current value wasn't an entry, multiple values to set a single current value to were present or the setter threw an exception when only a single current value and a single value to set it to were present
+     * @throws CommandSyntaxException The parentCaster threw an error, multiple values to set a single current value to were present or the setter threw an exception when only a single current value and a single value to set it to were present
      */
-    static int setEntryChildren(Either<VariableHolder, Stream<Variable>> current, Either<VariableHolder, Stream<Variable>> value, CommandContext<ServerCommandSource> cc, MapEntryChildSetter setter) throws CommandSyntaxException {
+    static <ParentType extends Variable> int setStaticVariableChildren(Either<VariableHolder, Stream<Variable>> current, Either<VariableHolder, Stream<Variable>> value, CommandContext<ServerCommandSource> cc, StaticChildSetter<ParentType> setter, VariableCaster<ParentType> parentCaster) throws CommandSyntaxException {
         if(current.left().isPresent()) {
-            if (!(current.left().get().variable instanceof MapEntryVariable entry)) {
-                throw VariablePath.VARIABLE_NOT_ENTRY_EXCEPTION.create();
-            }
+            ParentType parent = parentCaster.cast(current.left().get().variable);
             if(value.left().isPresent()) {
-                setter.set(entry, value.left().get().variable);
+                setter.set(parent, value.left().get().variable);
                 return 1;
             }
             throw VariablePath.MULTIPLE_VALUES_TO_SINGLE_VARIABLE_EXCEPTION.create();
@@ -486,12 +490,9 @@ public interface PathChildrenAccessor {
         Stream<Variable> currentStream = current.right().get();
         return value.map(
                 valueHolder -> currentStream.mapToInt(variable -> {
-                    if (!(variable instanceof MapEntryVariable entry)) {
-                        cc.getSource().sendError(Texts.toText(VariablePath.VARIABLE_NOT_ENTRY_EXCEPTION.create().getRawMessage()));
-                        return 0;
-                    }
                     try {
-                        setter.set(entry, valueHolder.variable);
+                        ParentType parent = parentCaster.cast(variable);
+                        setter.set(parent, valueHolder.variable);
                         return 1;
                     } catch (CommandSyntaxException e) {
                         cc.getSource().sendError(Texts.toText(e.getRawMessage()));
@@ -502,13 +503,9 @@ public interface PathChildrenAccessor {
                     int changed = 0;
                     Iterator<Variable> currentIterator = currentStream.iterator(), valueIterator = valueStream.iterator();
                     while (currentIterator.hasNext() && valueIterator.hasNext()) {
-                        if (!(currentIterator.next() instanceof MapEntryVariable entry)) {
-                            valueIterator.next();
-                            cc.getSource().sendError(Texts.toText(VariablePath.VARIABLE_NOT_ENTRY_EXCEPTION.create().getRawMessage()));
-                            continue;
-                        }
                         try {
-                            setter.set(entry, valueIterator.next());
+                            ParentType parent = parentCaster.cast(currentIterator.next());
+                            setter.set(parent, valueIterator.next());
                             ++changed;
                         } catch (CommandSyntaxException e) {
                             cc.getSource().sendError(Texts.toText(e.getRawMessage()));
@@ -518,16 +515,81 @@ public interface PathChildrenAccessor {
                 });
     }
 
+    static <ParentType extends Variable> Either<VariableHolder, Stream<Variable>> getStaticChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc, StaticChildGetter<ParentType> getter, VariableCaster<ParentType> parentCaster, StaticChildSetter<ParentType> optionalSetter) {
+        return current.map(
+                holder -> {
+                    if (holder == null) return null;
+                    try {
+                        ParentType parent = parentCaster.cast(holder.variable);
+                        Variable child = getter.get(parent);
+                        if(child == null && optionalSetter != null) {
+                            child = parent.getType().getChild(0).createVariable();
+                            optionalSetter.set(parent, child);
+                        }
+                        return Either.left(new VariableHolder(child));
+                    } catch(CommandSyntaxException e) {
+                        cc.getSource().sendError(Texts.toText(e.getRawMessage()));
+                        return null;
+                    }
+                },
+                stream -> Either.right(stream.flatMap(variable -> {
+                    if (variable == null) return null;
+                    try {
+                        ParentType parent = parentCaster.cast(variable);
+                        Variable child = getter.get(parent);
+                        if(child == null && optionalSetter != null) {
+                            child = parent.getType().getChild(0).createVariable();
+                            optionalSetter.set(parent, child);
+                        }
+                        return Stream.of(child);
+                    } catch(CommandSyntaxException e) {
+                        cc.getSource().sendError(Texts.toText(e.getRawMessage()));
+                        return Stream.of();
+                    }
+                })));
+    }
+
     @FunctionalInterface
-    interface MapEntryChildSetter {
+    interface StaticChildSetter<ParentType extends Variable> {
 
         /**
-         * Casts the value to the type of the child of the entry and sets the child to the value
-         * @param entry The entry to set either the key or value of
+         * Casts the value to the type of the child of the variable and sets the child to the value
+         * @param variable The variable to set the child of
          * @param value The value to set the child to
          * @throws CommandSyntaxException An exception was thrown when casting the value to the type of the child
          */
-        void set(MapEntryVariable entry, Variable value) throws CommandSyntaxException;
+        void set(ParentType variable, Variable value) throws CommandSyntaxException;
+    }
+
+    @FunctionalInterface
+    interface StaticChildGetter<ParentType extends Variable> {
+
+        Variable get(ParentType variable);
+    }
+
+    @FunctionalInterface
+    interface VariableCaster<TargetType extends Variable> {
+
+        /**
+         * Casts the instance to the specified type and returns that same instance.
+         * If the given instance is not of the correct type, an error is thrown.
+         * @param value The value to cast
+         * @return The casted value
+         */
+        TargetType cast(Variable value) throws CommandSyntaxException;
+
+        VariableCaster<MapEntryVariable> MAP_ENTRY_VARIABLE_CASTER = value -> {
+            if(value instanceof MapEntryVariable entry) {
+                return entry;
+            }
+            throw VariablePath.VARIABLE_NOT_ENTRY_EXCEPTION.create();
+        };
+        VariableCaster<PosVariable> POSITION_VARIABLE_CASTER = value -> {
+            if(value instanceof PosVariable entry) {
+                return entry;
+            }
+            throw VariablePath.VARIABLE_NOT_POS_EXCEPTION.create();
+        };
     }
 
     /**
@@ -538,10 +600,18 @@ public interface PathChildrenAccessor {
         public static final AllContentAccessor INSTANCE = new AllContentAccessor();
 
         @Override
-        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc, boolean createIfMissing) throws CommandSyntaxException {
             if(current.left().isPresent()) {
                 if(!(current.left().get().variable instanceof IndexableVariable indexable)) {
                     throw VariablePath.VARIABLE_NOT_INDEXABLE_EXCEPTION.create();
+                }
+                if(createIfMissing && indexable instanceof ListVariable list) {
+                    // Only a list can have 'null' contents, because a map contains 'MapEntryVariable's
+                    IntVariable index = new IntVariable();
+                    for(int i = 0; i < list.intValue(); ++i) {
+                        index.set(i);
+                        list.ensureIndexAndGetNonNull(index);
+                    }
                 }
                 return Either.right(indexable.getContents());
             }
@@ -637,29 +707,17 @@ public interface PathChildrenAccessor {
         public static final KeyAccessor INSTANCE = new KeyAccessor();
 
         @Override
-        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) {
-            return current.map(
-                    holder -> {
-                        if (holder == null) return null;
-                        if (!(holder.variable instanceof MapEntryVariable entry)) {
-                            cc.getSource().sendError(Texts.toText(VariablePath.VARIABLE_NOT_ENTRY_EXCEPTION.create().getRawMessage()));
-                            return null;
-                        }
-                        return Either.left(new VariableHolder(entry.key));
-                    },
-                    stream -> Either.right(stream.map(variable -> {
-                        if (variable == null) return null;
-                        if (!(variable instanceof MapEntryVariable entry)) {
-                            cc.getSource().sendError(Texts.toText(VariablePath.VARIABLE_NOT_ENTRY_EXCEPTION.create().getRawMessage()));
-                            return null;
-                        }
-                        return entry.key;
-                    })));
+        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc, boolean createIfMissing) {
+            return getStaticChildren(current, cc, entry -> entry.key, VariableCaster.MAP_ENTRY_VARIABLE_CASTER, createIfMissing ? KeyAccessor::castAndSet : null);
         }
 
         @Override
         public int setChildren(Either<VariableHolder, Stream<Variable>> current, Either<VariableHolder, Stream<Variable>> value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
-            return setEntryChildren(current, value, cc, (entry, entryValue) -> entry.key = VariableManager.castVariable(entry.getType().getChild(0), entryValue));
+            return setStaticVariableChildren(current, value, cc, KeyAccessor::castAndSet, VariableCaster.MAP_ENTRY_VARIABLE_CASTER);
+        }
+
+        private static void castAndSet(MapEntryVariable entry, Variable entryKey) throws CommandSyntaxException {
+            entry.key = VariableManager.castVariable(entry.getType().getChild(0), entryKey);
         }
 
         @Override
@@ -684,30 +742,18 @@ public interface PathChildrenAccessor {
         public static final ValueAccessor INSTANCE = new ValueAccessor();
 
         @Override
-        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) {
-            return current.map(
-                    holder -> {
-                        if (holder == null) return null;
-                        if (!(holder.variable instanceof MapEntryVariable entry)) {
-                            cc.getSource().sendError(Texts.toText(VariablePath.VARIABLE_NOT_ENTRY_EXCEPTION.create().getRawMessage()));
-                            return null;
-                        }
-                        return Either.left(new VariableHolder(entry.value));
-                    },
-                    stream -> Either.right(stream.map(variable -> {
-                        if (variable == null) return null;
-                        if (!(variable instanceof MapEntryVariable entry)) {
-                            cc.getSource().sendError(Texts.toText(VariablePath.VARIABLE_NOT_ENTRY_EXCEPTION.create().getRawMessage()));
-                            return null;
-                        }
-                        return entry.value;
-                    })));
+        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc, boolean createIfMissing) {
+            return getStaticChildren(current, cc, entry -> entry.value, VariableCaster.MAP_ENTRY_VARIABLE_CASTER, createIfMissing ? ValueAccessor::castAndSet : null);
         }
 
         @Override
         public int setChildren(Either<VariableHolder, Stream<Variable>> current, Either<VariableHolder, Stream<Variable>> value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
-            return setEntryChildren(current, value, cc, (entry, entryValue) -> entry.value = VariableManager.castVariable(entry.getType().getChild(0), entryValue));
+            return setStaticVariableChildren(current, value, cc, ValueAccessor::castAndSet, VariableCaster.MAP_ENTRY_VARIABLE_CASTER);
 
+        }
+
+        private static void castAndSet(MapEntryVariable entry, Variable entryValue) throws CommandSyntaxException {
+            entry.value = VariableManager.castVariable(entry.getType().getChild(0), entryValue);
         }
 
         @Override
@@ -716,6 +762,114 @@ public interface PathChildrenAccessor {
         }
 
         private static final List<CriterionPath.ChildDescriptor> childDescriptors = List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.ENTRY_VALUE));
+
+        @Override
+        public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) {
+            return childDescriptors;
+        }
+    }
+
+    /**
+     * Accesses the x-coordinates of all position variables of the current value.<br/>
+     * It is not possible to remove the coordinate, so a {@link VariablePath#UNABLE_TO_REMOVE_FROM_POS_EXCEPTION} is thrown when {@link ValueAccessor#removeChildren} is called.
+     */
+    class XAccessor implements PathChildrenAccessor {
+
+        public static final XAccessor INSTANCE = new XAccessor();
+
+        @Override
+        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc, boolean createIfMissing) {
+            return getStaticChildren(current, cc, PosVariable::getX, VariableCaster.POSITION_VARIABLE_CASTER, createIfMissing ? XAccessor::castAndSet : null);
+        }
+
+        @Override
+        public int setChildren(Either<VariableHolder, Stream<Variable>> current, Either<VariableHolder, Stream<Variable>> value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+            return setStaticVariableChildren(current, value, cc, XAccessor::castAndSet, VariableCaster.POSITION_VARIABLE_CASTER);
+
+        }
+
+        private static void castAndSet(PosVariable pos, Variable entryValue) throws CommandSyntaxException {
+            pos.setX(VariableManager.castVariable(DoubleVariable.DoubleVariableType.INSTANCE, entryValue));
+        }
+
+        @Override
+        public int removeChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+            throw VariablePath.UNABLE_TO_REMOVE_FROM_POS_EXCEPTION.create();
+        }
+
+        private static final List<CriterionPath.ChildDescriptor> childDescriptors = List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.POS_X));
+
+        @Override
+        public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) {
+            return childDescriptors;
+        }
+    }
+
+    /**
+     * Accesses the y-coordinates of all position variables of the current value.<br/>
+     * It is not possible to remove the coordinate, so a {@link VariablePath#UNABLE_TO_REMOVE_FROM_POS_EXCEPTION} is thrown when {@link ValueAccessor#removeChildren} is called.
+     */
+    class YAccessor implements PathChildrenAccessor {
+
+        public static final YAccessor INSTANCE = new YAccessor();
+
+        @Override
+        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc, boolean createIfMissing) {
+            return getStaticChildren(current, cc, PosVariable::getY, VariableCaster.POSITION_VARIABLE_CASTER, createIfMissing ? YAccessor::castAndSet : null);
+        }
+
+        @Override
+        public int setChildren(Either<VariableHolder, Stream<Variable>> current, Either<VariableHolder, Stream<Variable>> value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+            return setStaticVariableChildren(current, value, cc, YAccessor::castAndSet, VariableCaster.POSITION_VARIABLE_CASTER);
+
+        }
+
+        private static void castAndSet(PosVariable pos, Variable entryValue) throws CommandSyntaxException {
+            pos.setY(VariableManager.castVariable(DoubleVariable.DoubleVariableType.INSTANCE, entryValue));
+        }
+
+        @Override
+        public int removeChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+            throw VariablePath.UNABLE_TO_REMOVE_FROM_POS_EXCEPTION.create();
+        }
+
+        private static final List<CriterionPath.ChildDescriptor> childDescriptors = List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.POS_Y));
+
+        @Override
+        public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) {
+            return childDescriptors;
+        }
+    }
+
+    /**
+     * Accesses the x-coordinates of all position variables of the current value.<br/>
+     * It is not possible to remove the coordinate, so a {@link VariablePath#UNABLE_TO_REMOVE_FROM_POS_EXCEPTION} is thrown when {@link ValueAccessor#removeChildren} is called.
+     */
+    class ZAccessor implements PathChildrenAccessor {
+
+        public static final ZAccessor INSTANCE = new ZAccessor();
+
+        @Override
+        public Either<VariableHolder, Stream<Variable>> getChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc, boolean createIfMissing) {
+            return getStaticChildren(current, cc, PosVariable::getZ, VariableCaster.POSITION_VARIABLE_CASTER, createIfMissing ? ZAccessor::castAndSet : null);
+        }
+
+        @Override
+        public int setChildren(Either<VariableHolder, Stream<Variable>> current, Either<VariableHolder, Stream<Variable>> value, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+            return setStaticVariableChildren(current, value, cc, ZAccessor::castAndSet, VariableCaster.POSITION_VARIABLE_CASTER);
+
+        }
+
+        private static void castAndSet(PosVariable pos, Variable entryValue) throws CommandSyntaxException {
+            pos.setZ(VariableManager.castVariable(DoubleVariable.DoubleVariableType.INSTANCE, entryValue));
+        }
+
+        @Override
+        public int removeChildren(Either<VariableHolder, Stream<Variable>> current, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+            throw VariablePath.UNABLE_TO_REMOVE_FROM_POS_EXCEPTION.create();
+        }
+
+        private static final List<CriterionPath.ChildDescriptor> childDescriptors = List.of(new CriterionPath.ChildDescriptor(CriterionPath.ChildType.POS_Z));
 
         @Override
         public List<CriterionPath.ChildDescriptor> getChildDescriptors(Variable value, CommandContext<ServerCommandSource> cc) {

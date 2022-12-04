@@ -1,11 +1,14 @@
 package net.papierkorb2292.command_expander.commands;
 
+import com.google.gson.JsonObject;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import net.minecraft.command.argument.serialize.ArgumentSerializer;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.command.ServerCommandSource;
 import net.papierkorb2292.command_expander.variables.Variable;
 import net.papierkorb2292.command_expander.variables.VariableManager;
@@ -145,5 +148,22 @@ public class VariableTypeArgumentType implements ArgumentType<Variable.VariableT
     @Override
     public Collection<String> getExamples() {
         return EXAMPLES;
+    }
+
+    public static class Serializer implements ArgumentSerializer<VariableTypeArgumentType> {
+        @Override
+        public void toPacket(VariableTypeArgumentType type, PacketByteBuf buf) {
+            buf.writeBoolean(type.allowNull);
+        }
+
+        @Override
+        public VariableTypeArgumentType fromPacket(PacketByteBuf buf) {
+            return new VariableTypeArgumentType(buf.readBoolean());
+        }
+
+        @Override
+        public void toJson(VariableTypeArgumentType type, JsonObject json) {
+            json.addProperty("allowNull", type.allowNull);
+        }
     }
 }

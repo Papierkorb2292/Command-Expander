@@ -22,14 +22,8 @@ public class VariableNameArgumentType implements ArgumentType<VariableIdentifier
     private static final Collection<String> EXAMPLES = Arrays.asList("my_list", "minecraft:players52", "other_namespace:some.path");
     private static final DynamicCommandExceptionType CHAR_NOT_ALLOWED_EXCEPTION = new DynamicCommandExceptionType(c -> new LiteralText(String.format("The char '%s' isn't allowed in a variable name", c)));
 
-    private final boolean suggestsExisting;
-
-    public VariableNameArgumentType(boolean suggestsExisting) {
-        this.suggestsExisting = suggestsExisting;
-    }
-
-    public static VariableNameArgumentType variableName(boolean suggestsExisting) {
-        return new VariableNameArgumentType(suggestsExisting);
+    public static VariableNameArgumentType variableName() {
+        return new VariableNameArgumentType();
     }
 
     public static VariableIdentifier getVariableName(CommandContext<ServerCommandSource> context, String name) {
@@ -71,32 +65,32 @@ public class VariableNameArgumentType implements ArgumentType<VariableIdentifier
      */
     @Override
     public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-        if(!suggestsExisting) {
-            return Suggestions.empty();
-        }
-        S source = context.getSource();
-        if(source instanceof ServerCommandSource serverCommandSource) {
-            String remaining = builder.getRemaining();
-            boolean hasColon = remaining.indexOf(':') > -1;
-            for (VariableIdentifier id : (Iterable<VariableIdentifier>)((VariableManagerContainer)serverCommandSource.getServer()).command_expander$getVariableManager().getIds()::iterator) {
-                if (hasColon) {
-                    String string = id.toString();
-                    if (!CommandSource.shouldSuggest(remaining, string)) {
-                        continue;
-                    }
-                    builder.suggest(string);
-                    continue;
-                }
-                if (!CommandSource.shouldSuggest(remaining, id.namespace) && (!id.namespace.equals("minecraft") || !CommandSource.shouldSuggest(remaining, id.path))) {
-                    continue;
-                }
-                builder.suggest(id.toString());
-            }
-            return builder.buildFuture();
-        }
-        if(source instanceof CommandSource commandSource) {
-            return commandSource.getCompletions(context);
-        }
+        //if(!suggestsExisting) {
+        //    return Suggestions.empty();
+        //}
+        //S source = context.getSource();
+        //if(source instanceof ServerCommandSource serverCommandSource) {
+        //    String remaining = builder.getRemaining();
+        //    boolean hasColon = remaining.indexOf(':') > -1;
+        //    for (VariableIdentifier id : (Iterable<VariableIdentifier>)((VariableManagerContainer)serverCommandSource.getServer()).command_expander$getVariableManager().getIds()::iterator) {
+        //        if (hasColon) {
+        //            String string = id.toString();
+        //            if (!CommandSource.shouldSuggest(remaining, string)) {
+        //                continue;
+        //            }
+        //            builder.suggest(string);
+        //            continue;
+        //        }
+        //        if (!CommandSource.shouldSuggest(remaining, id.namespace) && (!id.namespace.equals("minecraft") || !CommandSource.shouldSuggest(remaining, id.path))) {
+        //            continue;
+        //        }
+        //        builder.suggest(id.toString());
+        //    }
+        //    return builder.buildFuture();
+        //}
+        //if(source instanceof CommandSource commandSource) {
+        //    return commandSource.getCompletions(context);
+        //}
         return Suggestions.empty();
     }
 
