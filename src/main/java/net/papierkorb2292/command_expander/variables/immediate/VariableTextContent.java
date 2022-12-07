@@ -15,19 +15,19 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class VariableText extends BaseText implements ParsableText {
+public class VariableTextContent implements TextContent {
 
     private final ImmediateValue value;
     private final String rawValue;
     private final Optional<Text> separator;
 
-    public VariableText(ImmediateValue value, String rawValue, Optional<Text> separator) {
+    public VariableTextContent(ImmediateValue value, String rawValue, Optional<Text> separator) {
         this.value = value;
         this.rawValue = rawValue;
         this.separator = separator;
     }
 
-    public VariableText(String rawValue, Optional<Text> separator) {
+    public VariableTextContent(String rawValue, Optional<Text> separator) {
         ImmediateValue value;
         try {
             value = ImmediateValueCompiler.compile(new StringReader(rawValue));
@@ -40,19 +40,14 @@ public class VariableText extends BaseText implements ParsableText {
     }
 
     @Override
-    public VariableText copy() {
-        return new VariableText(value, rawValue, separator);
-    }
-
-    @Override
     public MutableText parse(@Nullable ServerCommandSource source, @Nullable Entity sender, int depth) throws CommandSyntaxException {
         if(source == null || value == null) {
-            return new LiteralText("");
+            return Text.literal("");
         }
         Either<VariableHolder, Stream<Variable>> result = value.calculate(new CommandContext<>(source, null, null, null, null, null, null, null, null, false));
         if(result.left().isPresent()) {
             Variable var = result.left().get().variable;
-            return new LiteralText(var == null ? "null" : var.stringValue());
+            return Text.literal(var == null ? "null" : var.stringValue());
         }
         if(result.right().isEmpty()) {
             throw new IllegalArgumentException("Invalid Either given to VariableText. Neither left nor right were present");
@@ -62,15 +57,15 @@ public class VariableText extends BaseText implements ParsableText {
         );
         return Texts.parse(source, this.separator, sender, depth)
                 .map((textx) -> texts
-                        .map(text -> (MutableText)new LiteralText(text))
+                        .map(Text::literal)
                         .reduce((accumulator, current) ->
                                         accumulator.append(textx).append(current))
-                        .orElseGet(() -> new LiteralText("")))
-                .orElseGet(() -> new LiteralText(texts.collect(Collectors.joining(", "))));
+                        .orElseGet(() -> Text.literal("")))
+                .orElseGet(() -> Text.literal(texts.collect(Collectors.joining(", "))));
     }
 
     @Override
     public String toString() {
-        return "VariableComponent{value=" + rawValue + ", style=" + getStyle() + ", siblings=" + this.siblings + "}";
+        return "variable{value=" + rawValue + "}";
     }
 }

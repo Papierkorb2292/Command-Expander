@@ -147,8 +147,8 @@ public class MapEntryVariable extends Variable {
         }, new VariableCodec() {
 
             @Override
-            protected <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
-                MapEntryVariable.MapEntryVariableType mapEntryType = (MapEntryVariable.MapEntryVariableType) type;
+            protected <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, VariableType type) {
+                MapEntryVariableType mapEntryType = (MapEntryVariableType) type;
                 return ops.get(input, "keys")
                         .flatMap(keyListElement -> mapEntryType.key.getTemplate().codec.decode(ops, keyListElement, mapEntryType.key))
                         .mapError(error -> "Error decoding key of map entry: (" + error + ")")

@@ -94,10 +94,10 @@ public class EntityVariable extends Variable {
                         return new EntityVariable(entity.uuid);
                     }
                     if(var instanceof ListVariable list) {
-                        if(list.value.size() == 2) {
+                        if (list.value.size() == 2) {
                             return new EntityVariable(new UUID(list.value.get(0).longValue(), list.value.get(1).longValue()));
                         }
-                        if(list.value.size() == 4) {
+                        if (list.value.size() == 4) {
                             return new EntityVariable(new UUID((long) list.value.get(0).intValue() << 32 | (long) list.value.get(1).intValue(), (long) list.value.get(3).intValue() << 32 | (long) list.value.get(4).intValue()));
                         }
                         throw VariableManager.PARSE_EXCEPTION.create(var.stringValue(), type.asString());
@@ -117,7 +117,7 @@ public class EntityVariable extends Variable {
                     }
 
                     @Override
-                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
+                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, VariableType type) {
                         return ops.getMap(input).flatMap(map ->
                                 Codec.LONG.decode(ops, map.get("most")).flatMap(most ->
                                         Codec.LONG.decode(ops, map.get("least")).map(least ->

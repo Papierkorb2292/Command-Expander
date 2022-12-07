@@ -10,7 +10,6 @@ import com.mojang.datafixers.util.Pair;
 import net.minecraft.command.argument.CommandFunctionArgumentType;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.function.CommandFunction;
-import net.minecraft.tag.Tag;
 import net.minecraft.text.Texts;
 import net.minecraft.util.Identifier;
 import net.papierkorb2292.command_expander.variables.StringVariable;
@@ -76,7 +75,7 @@ public class CommandFunctionArgumentTypeMixin {
                 private static final SimpleCommandExceptionType CALLED_GET_FUNCTION_OR_TAG_WITH_MULTIPLE_VALUES_EXCEPTIONS = new SimpleCommandExceptionType(new LiteralMessage("Tried to decide whether a function specified through an immediate value with a stream as result is a function or tag."));
 
                 @Override
-                public Pair<Identifier, Either<CommandFunction, Tag<CommandFunction>>> getFunctionOrTag(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+                public Pair<Identifier, Either<CommandFunction, Collection<CommandFunction>>> getFunctionOrTag(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
                     Either<VariableHolder, Stream<Variable>> result = value.calculate(context);
                     if(result.right().isPresent()) {
                         throw CALLED_GET_FUNCTION_OR_TAG_WITH_MULTIPLE_VALUES_EXCEPTIONS.create();

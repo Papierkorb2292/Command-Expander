@@ -152,7 +152,7 @@ public abstract class Variable {
                     }
                 }
                 for(int i = 0; i < length; ++i) {
-                    Variable.VariableType type = contentType[i];
+                    VariableType type = contentType[i];
                     if(type != null) {
                         contentType[i] = type.getNextLoweredType();
                     }
@@ -163,9 +163,9 @@ public abstract class Variable {
         }
 
         final class LoweredType {
-            public final Variable.VariableType type;
+            public final VariableType type;
 
-            private LoweredType(Variable.VariableType type) {
+            private LoweredType(VariableType type) {
                 this.type = type;
             }
         }
@@ -328,9 +328,9 @@ public abstract class Variable {
                 return DataResult.error(String.format("Encountered invalid type id '%s' while decoding variable", id));
             }
             VariableTypeTemplate template = VariableManager.TYPES_BY_ID.get(id);
-            Variable.VariableType result = template.typeFactory.get();
+            VariableType result = template.typeFactory.get();
             ++offset.value;
-            DataResult<Variable.VariableType> parsedType = DataResult.success(result);
+            DataResult<VariableType> parsedType = DataResult.success(result);
             for(int i = 0; i < template.childrenCount; ++i) {
                 int finalI = i;
                 parsedType = parsedType.apply2((currentType, child) -> {

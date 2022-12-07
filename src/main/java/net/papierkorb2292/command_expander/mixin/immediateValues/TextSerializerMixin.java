@@ -7,7 +7,7 @@ import com.llamalad7.mixinextras.injector.InitVariable;
 import com.llamalad7.mixinextras.injector.WrapWithCondition;
 import net.minecraft.text.MutableText;
 import net.minecraft.util.JsonHelper;
-import net.papierkorb2292.command_expander.variables.immediate.VariableText;
+import net.papierkorb2292.command_expander.variables.immediate.VariableTextContent;
 import org.spongepowered.asm.mixin.Mixin;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Shadow;
@@ -33,7 +33,7 @@ public abstract class TextSerializerMixin {
         if(!obj.has("variable")) {
             return null;
         }
-        return new VariableText(JsonHelper.getString(obj, "variable"), getSeparator(type, jsonDeserializationContext, obj));
+        return MutableText.of(new VariableTextContent(JsonHelper.getString(obj, "variable"), getSeparator(type, jsonDeserializationContext, obj)));
     }
 
     @WrapWithCondition(

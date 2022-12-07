@@ -1,6 +1,5 @@
 package net.papierkorb2292.command_expander.variables;
 
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
@@ -117,7 +116,7 @@ public class ShortVariable extends CriteriaBindableNumberVariable {
                     }
 
                     @Override
-                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
+                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, VariableType type) {
                         return ops.getNumberValue(input).map(value -> Pair.of(new ShortVariable(value.shortValue()), ops.empty()));
                     }
                 });

@@ -7,6 +7,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.serialize.ArgumentSerializer;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.command.ServerCommandSource;
@@ -150,20 +151,45 @@ public class VariableTypeArgumentType implements ArgumentType<Variable.VariableT
         return EXAMPLES;
     }
 
-    public static class Serializer implements ArgumentSerializer<VariableTypeArgumentType> {
+    public static class Serializer implements ArgumentSerializer<VariableTypeArgumentType, Serializer.Properties> {
+
         @Override
-        public void toPacket(VariableTypeArgumentType type, PacketByteBuf buf) {
-            buf.writeBoolean(type.allowNull);
+        public void writePacket(Properties properties, PacketByteBuf buf) {
+            buf.writeBoolean(properties.allowNull);
         }
 
         @Override
-        public VariableTypeArgumentType fromPacket(PacketByteBuf buf) {
-            return new VariableTypeArgumentType(buf.readBoolean());
+        public Properties fromPacket(PacketByteBuf buf) {
+            return new Properties(buf.readBoolean());
         }
 
         @Override
-        public void toJson(VariableTypeArgumentType type, JsonObject json) {
-            json.addProperty("allowNull", type.allowNull);
+        public Properties getArgumentTypeProperties(VariableTypeArgumentType type) {
+            return new Properties(type.allowNull);
+        }
+
+        @Override
+        public void writeJson(Properties properties, JsonObject json) {
+            json.addProperty("allowNull", properties.allowNull);
+        }
+
+        public final class Properties
+                implements ArgumentSerializer.ArgumentTypeProperties<VariableTypeArgumentType> {
+            final boolean allowNull;
+
+            Properties(boolean allowNull) {
+                this.allowNull = allowNull;
+            }
+
+            @Override
+            public VariableTypeArgumentType createType(CommandRegistryAccess commandRegistryAccess) {
+                return VariableTypeArgumentType.variableType(allowNull);
+            }
+
+            @Override
+            public ArgumentSerializer<VariableTypeArgumentType, Properties> getSerializer() {
+                return VariableTypeArgumentType.Serializer.this;
+            }
         }
     }
 }

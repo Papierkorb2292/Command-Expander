@@ -28,7 +28,8 @@ public class SummonCommandMixin {
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/server/command/SummonCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/Identifier;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/nbt/NbtCompound;Z)I"
-            )
+            ),
+            remap = false
     )
     private static int command_expander$allowImmediateValueEntitySummonSimple(ServerCommandSource source, Identifier entity, Vec3d pos, NbtCompound nbt, boolean initialize, Operation<Integer> op, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
         if(entity instanceof ImmediateValueIdentifier variableEntity) {
@@ -53,7 +54,8 @@ public class SummonCommandMixin {
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/server/command/SummonCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/Identifier;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/nbt/NbtCompound;Z)I"
-            )
+            ),
+            remap = false
     )
     private static int command_expander$allowImmediateValueEntitySummonWithPos(ServerCommandSource source, Identifier entity, Vec3d pos, NbtCompound nbt, boolean initialize, Operation<Integer> op, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
         Either<Identifier, Stream<Identifier>> entityId = entity instanceof ImmediateValueIdentifier variableEntity ? variableEntity.calculate(cc) : Either.left(entity);
@@ -110,7 +112,8 @@ public class SummonCommandMixin {
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/server/command/SummonCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/Identifier;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/nbt/NbtCompound;Z)I"
-            )
+            ),
+            remap = false
     )
     private static int command_expander$allowImmediateValueEntitySummonWithPosAndNbt(ServerCommandSource source, Identifier entity, Vec3d pos, NbtCompound nbt, boolean initialize, Operation<Integer> op, CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
         return command_expander$allowImmediateValueEntitySummonWithPos(source, entity, pos, nbt, initialize, op, cc);

@@ -11,12 +11,12 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.datafixers.util.Either;
+import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ExecuteCommand;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.text.Texts;
-import net.minecraft.text.TranslatableText;
 import net.papierkorb2292.command_expander.CommandExpander;
 import net.papierkorb2292.command_expander.commands.ExecuteVarAllPredicateCountHolder;
 import net.papierkorb2292.command_expander.commands.VariableImmediateValueArgumentType;
@@ -57,7 +57,7 @@ public abstract class ExecuteCommandMixin {
             method = "addConditionArguments",
             at = @At("HEAD")
     )
-    private static void command_expander$addVariableCondition(CommandNode<ServerCommandSource> root, LiteralArgumentBuilder<ServerCommandSource> builder, boolean positive, CallbackInfoReturnable<ArgumentBuilder<ServerCommandSource, ?>> cir) {
+    private static void command_expander$addVariableCondition(CommandNode<ServerCommandSource> root, LiteralArgumentBuilder<ServerCommandSource> builder, boolean positive, CommandRegistryAccess commandRegistryAccess, CallbackInfoReturnable<ArgumentBuilder<ServerCommandSource, ?>> cir) {
         builder.then(CommandManager.literal("var")
                 .requires(source -> CommandExpander.isFeatureEnabled(source.getServer(), CommandExpander.VARIABLE_FEATURE))
                 .then(CommandManager.argument("value", VariableImmediateValueArgumentType.variableImmediateValue())
@@ -149,7 +149,7 @@ public abstract class ExecuteCommandMixin {
                 secondValue = VariableImmediateValueArgumentType.getImmediateValue(context, secondValueName).calculate(context);
         int result = command_expander$getMatchingCount(firstValue, secondValue);
         if (result == 0) {
-            context.getSource().sendFeedback(new TranslatableText("commands.execute.conditional.pass"), false);
+            context.getSource().sendFeedback(Text.translatable("commands.execute.conditional.pass"), false);
             return 1;
         }
         throw CONDITIONAL_FAIL_COUNT_EXCEPTION.create(result);
@@ -163,7 +163,7 @@ public abstract class ExecuteCommandMixin {
         if (result == 0) {
             throw CONDITIONAL_FAIL_EXCEPTION.create();
         }
-        context.getSource().sendFeedback(new TranslatableText("commands.execute.conditional.pass_count", result), false);
+        context.getSource().sendFeedback(Text.translatable("commands.execute.conditional.pass_count", result), false);
         return result;
     }
 
@@ -240,7 +240,7 @@ public abstract class ExecuteCommandMixin {
         if (result == 0) {
             throw CONDITIONAL_FAIL_EXCEPTION.create();
         }
-        context.getSource().sendFeedback(new TranslatableText("commands.execute.conditional.pass_count", result), false);
+        context.getSource().sendFeedback(Text.translatable("commands.execute.conditional.pass_count", result), false);
         return result;
     }
 
@@ -249,7 +249,7 @@ public abstract class ExecuteCommandMixin {
         Variable.VariableType type = VariableTypeArgumentType.getType(context, typeName);
         int result = command_expander$getOfTypeCount(value, type);
         if (result == 0) {
-            context.getSource().sendFeedback(new TranslatableText("commands.execute.conditional.pass"), false);
+            context.getSource().sendFeedback(Text.translatable("commands.execute.conditional.pass"), false);
             return 1;
         }
         throw CONDITIONAL_FAIL_COUNT_EXCEPTION.create(result);

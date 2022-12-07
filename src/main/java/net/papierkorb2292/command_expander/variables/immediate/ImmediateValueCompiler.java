@@ -8,7 +8,6 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.command.EntitySelectorReader;
 import net.papierkorb2292.command_expander.variables.*;
-
 import java.util.*;
 
 public class ImmediateValueCompiler {

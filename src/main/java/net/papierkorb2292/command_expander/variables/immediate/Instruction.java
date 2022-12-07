@@ -51,7 +51,7 @@ public abstract class Instruction {
      */
     public static record CalculationContext(Deque<Either<VariableHolder, Stream<Variable>>> stack, CommandContext<ServerCommandSource> commandContext, Consumer<Text> errorConsumer) {
 
-        public CalculationContext(Deque<Either<VariableHolder, Stream<Variable>>> stack, CommandContext<net.minecraft.server.command.ServerCommandSource> commandContext) {
+        public CalculationContext(Deque<Either<VariableHolder, Stream<Variable>>> stack, CommandContext<ServerCommandSource> commandContext) {
             this(stack, commandContext, ImmediateValue.getCaughtErrorConsumer(commandContext));
         }
     }

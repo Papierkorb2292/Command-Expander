@@ -203,9 +203,9 @@ public class ListVariable extends IndexableVariable {
             return "list";
         }
 
-        public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(1, ListVariable.ListVariableType::new, (type, var) -> {
-            ListVariable.ListVariableType listType = (ListVariable.ListVariableType)type;
-            Variable.VariableType childrenType = listType.content;
+        public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(1, ListVariableType::new, (type, var) -> {
+            ListVariableType listType = (ListVariableType)type;
+            VariableType childrenType = listType.content;
             boolean nullType = childrenType == null;
             VariableManager.Caster childrenCaster = nullType ? null : childrenType.getTemplate().caster;
             if(var instanceof MapVariable map) {
@@ -284,8 +284,8 @@ public class ListVariable extends IndexableVariable {
                 return encodeList(list.value, ops, prefix, list.type.content);
             }
             @Override
-            public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
-                ListVariable.ListVariableType listType = (ListVariable.ListVariableType)type;
+            public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, VariableType type) {
+                ListVariableType listType = (ListVariableType)type;
                 return decodeList(ops, input, listType.content)
                         .map(pair ->
                                 pair.mapFirst(list -> {

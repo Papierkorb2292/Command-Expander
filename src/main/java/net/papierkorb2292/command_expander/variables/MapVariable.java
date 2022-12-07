@@ -194,7 +194,7 @@ public class MapVariable extends IndexableVariable {
             return "map";
         }
 
-        public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(2, MapVariable.MapVariableType::new, (type, var) -> {
+        public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(2, MapVariableType::new, (type, var) -> {
             MapVariableType mapType = (MapVariableType)type;
             VariableType keyType = mapType.key, valueType = mapType.value;
             if(var instanceof ListVariable list) {
@@ -290,8 +290,8 @@ public class MapVariable extends IndexableVariable {
         }, new VariableCodec() {
 
             @Override
-            protected <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
-                MapVariable.MapVariableType mapType = (MapVariable.MapVariableType) type;
+            protected <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, VariableType type) {
+                MapVariableType mapType = (MapVariableType) type;
                 return ops.get(input, "keys")
                         .flatMap(keyListElement -> decodeList(ops, keyListElement, mapType.key))
                         .mapError(error -> "Error decoding keys of map: (" + error + ")")

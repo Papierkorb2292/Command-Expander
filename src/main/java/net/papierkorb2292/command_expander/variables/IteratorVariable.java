@@ -245,7 +245,7 @@ public class IteratorVariable extends Variable {
 
     public interface Iterator {
 
-        ArrayList<Iterator.IteratorCodec> DECODERS = new ArrayList<>();
+        ArrayList<IteratorCodec> DECODERS = new ArrayList<>();
 
         boolean hasNext();
         Variable next() throws CommandSyntaxException;
@@ -263,7 +263,7 @@ public class IteratorVariable extends Variable {
         }
 
         interface IteratorCodec {
-            <T> DataResult<Pair<Iterator, T>> decode(DynamicOps<T> ops, T input, Variable.VariableType contentType);
+            <T> DataResult<Pair<Iterator, T>> decode(DynamicOps<T> ops, T input, VariableType contentType);
             <T> DataResult<T> encode(Iterator input, DynamicOps<T> ops, T prefix);
         }
 
@@ -276,7 +276,7 @@ public class IteratorVariable extends Variable {
                 public <T> DataResult<Pair<Iterator, T>> decode(DynamicOps<T> ops, T input, VariableType contentType) {
                     return ops.getMap(input).flatMap(
                             map -> ops.getByteBuffer(map.get("type")).flatMap(
-                                    rawType -> Variable.VariableType.decodeType(rawType.array(), new VariableType.OffsetHolder()).flatMap(
+                                    rawType -> VariableType.decodeType(rawType.array(), new VariableType.OffsetHolder()).flatMap(
                                             type -> ops.getMap(map.get("prev")).flatMap(
                                                     rawPrev -> ops.getNumberValue(rawPrev.get("id")).flatMap(
                                                             prevId -> Iterator.DECODERS.get(prevId.intValue()).decode(ops, map.get("prev"), type).map(

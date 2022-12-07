@@ -17,11 +17,11 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.util.JsonHelper;
 import net.minecraft.util.JsonSerializer;
 import net.minecraft.util.math.Vec2f;
+import net.minecraft.util.math.random.Random;
 import net.papierkorb2292.command_expander.variables.Variable;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.function.BiFunction;
 import java.util.stream.DoubleStream;
 

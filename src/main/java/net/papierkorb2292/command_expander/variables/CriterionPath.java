@@ -15,7 +15,7 @@ import net.minecraft.scoreboard.ScoreboardPlayerScore;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import net.papierkorb2292.command_expander.CommandExpander;
 import net.papierkorb2292.command_expander.mixin.ServerScoreboardAccessor;
 
@@ -34,7 +34,7 @@ import java.util.*;
  */
 public class CriterionPath {
 
-    private static final DynamicCommandExceptionType INVALID_VARIABLE_TYPE_EXCEPTION = new DynamicCommandExceptionType(type -> new LiteralText("Invalid variable type for variable binding: " + type.toString()));
+    private static final DynamicCommandExceptionType INVALID_VARIABLE_TYPE_EXCEPTION = new DynamicCommandExceptionType(type -> Text.literal("Invalid variable type for variable binding: " + type.toString()));
 
     public final Map<ChildDescriptor, CriterionPath> paths = new HashMap<>();
     @Nullable

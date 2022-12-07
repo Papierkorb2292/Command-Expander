@@ -13,6 +13,7 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
+import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -34,7 +35,7 @@ import java.util.function.Function;
 
 public class VarCommand {
 
-    public static void register(CommandDispatcher<ServerCommandSource> dispatcher, boolean isDedicated) {
+    public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
         dispatcher.register(
                 CommandManager.literal("var")
                         .requires(source -> CommandExpander.isFeatureEnabled(source.getServer(), CommandExpander.VARIABLE_FEATURE))
@@ -130,7 +131,7 @@ public class VarCommand {
     }
 
     private static void sendGetFeedback(CommandContext<ServerCommandSource> cc, Variable var) {
-        cc.getSource().sendFeedback(GET_FEEDBACK.copy().append(CommandExpander.buildCopyableText(var == null ? "null" : var.stringValue())), false);
+        cc.getSource().sendFeedback(GET_FEEDBACK.copyContentOnly().append(CommandExpander.buildCopyableText(var == null ? "null" : var.stringValue())), false);
     }
 
     private static <T extends ArgumentBuilder<ServerCommandSource, T>> T addHollowOption(T builder, Function<Boolean, Command<ServerCommandSource>> commandSupplier) {
@@ -179,7 +180,7 @@ public class VarCommand {
                                                             context
                                                     );
                                                 })))));
-    };
+    }
 
     private static <T extends ArgumentBuilder<ServerCommandSource, T>> T add3DIterator(T builder, Function<IteratorData3d, IteratorVariable.Iterator> supplier) {
         return builder.then(CommandManager.argument("pos", BlockPosArgumentType.blockPos())
@@ -211,7 +212,7 @@ public class VarCommand {
                                                             context
                                                     );
                                                 })))));
-    };
+    }
 
     static {
         //TODO: Support immediate values

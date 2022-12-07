@@ -46,7 +46,7 @@ public class FloatVariable extends CriteriaBindableNumberVariable {
     }
 
     @Override
-    public Variable.VariableType getType() {
+    public VariableType getType() {
         return FloatVariableType.INSTANCE;
     }
 
@@ -113,7 +113,7 @@ public class FloatVariable extends CriteriaBindableNumberVariable {
                     }
 
                     @Override
-                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
+                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, VariableType type) {
                         return ops.getNumberValue(input).map(value -> Pair.of(new FloatVariable(value.floatValue()), ops.empty()));
                     }
                 });

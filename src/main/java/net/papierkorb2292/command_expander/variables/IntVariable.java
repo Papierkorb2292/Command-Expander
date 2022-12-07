@@ -144,7 +144,7 @@ public class IntVariable extends CriteriaBindableNumberVariable {
         }
 
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(
-                0, () -> IntVariable.IntVariableType.INSTANCE,
+                0, () -> IntVariableType.INSTANCE,
                 (type, var) -> new IntVariable(var.intValue()),
                 new VariableCodec() {
 
@@ -154,7 +154,7 @@ public class IntVariable extends CriteriaBindableNumberVariable {
                     }
 
                     @Override
-                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
+                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, VariableType type) {
                         return ops.getNumberValue(input).map(value -> Pair.of(new IntVariable(value.intValue()), ops.empty()));
                     }
                 });

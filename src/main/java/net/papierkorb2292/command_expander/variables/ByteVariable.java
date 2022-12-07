@@ -116,7 +116,7 @@ public class ByteVariable extends CriteriaBindableNumberVariable {
                     }
 
                     @Override
-                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, Variable.VariableType type) {
+                    public <T> DataResult<Pair<Variable, T>> read(DynamicOps<T> ops, T input, VariableType type) {
                         return ops.getNumberValue(input).map(value -> Pair.of(new ByteVariable(value.byteValue()), ops.empty()));
                     }
                 });

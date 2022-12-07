@@ -9,8 +9,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.command.CommandSource;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.LiteralText;
-import net.papierkorb2292.command_expander.mixin_method_interfaces.VariableManagerContainer;
+import net.minecraft.text.Text;
 import net.papierkorb2292.command_expander.variables.VariableIdentifier;
 
 import java.util.Arrays;
@@ -20,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
 public class VariableNameArgumentType implements ArgumentType<VariableIdentifier> {
 
     private static final Collection<String> EXAMPLES = Arrays.asList("my_list", "minecraft:players52", "other_namespace:some.path");
-    private static final DynamicCommandExceptionType CHAR_NOT_ALLOWED_EXCEPTION = new DynamicCommandExceptionType(c -> new LiteralText(String.format("The char '%s' isn't allowed in a variable name", c)));
+    private static final DynamicCommandExceptionType CHAR_NOT_ALLOWED_EXCEPTION = new DynamicCommandExceptionType(c -> Text.literal(String.format("The char '%s' isn't allowed in a variable name", c)));
 
     public static VariableNameArgumentType variableName() {
         return new VariableNameArgumentType();
@@ -61,7 +60,7 @@ public class VariableNameArgumentType implements ArgumentType<VariableIdentifier
     }
 
     /**
-     * @see CommandSource#forEachMatching(java.lang.Iterable, java.lang.String, java.util.function.Function, java.util.function.Consumer)
+     * @see CommandSource#forEachMatching(Iterable, String, java.util.function.Function, java.util.function.Consumer)
      */
     @Override
     public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {

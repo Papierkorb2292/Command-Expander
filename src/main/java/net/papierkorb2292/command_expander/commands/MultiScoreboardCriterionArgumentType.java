@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * An argument type for scoreboard criterion, like {@link net.minecraft.command.argument.ScoreboardCriterionArgumentType}, but
+ * An argument type for scoreboard criterion, like {@link ScoreboardCriterionArgumentType}, but
  * this allows for the wildcard '*' and (TODO) tags '#' to be used in the criterion identifier, so multiple criterias can be specified. It
  * uses strings instead of {@link ScoreboardCriterion}, because {@link VariableManager.BoundCriteriaPersistentState} also uses strings.
  */

@@ -202,7 +202,7 @@ public final class Instructions {
         }
 
         @Override
-        public void apply(Instruction.CalculationContext context) {
+        public void apply(CalculationContext context) {
             applyToTwoParameters(context, applyFunction);
         }
     }

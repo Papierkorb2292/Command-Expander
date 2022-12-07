@@ -29,7 +29,7 @@
     "immediateValues.Vec3ArgumentTypeMixin"
   ],
   "client": [
-    "client.CommandSuggestorMixin"
+    "client.ChatInputSuggestorMixin"
   ],
   "injectors": {
     "defaultRequire": 1
