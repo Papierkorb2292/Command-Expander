@@ -3,10 +3,12 @@ package net.papierkorb2292.command_expander.variables.immediate;
 import com.google.common.collect.AbstractIterator;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.text.Texts;
+import net.papierkorb2292.command_expander.CommandExpander;
 import net.papierkorb2292.command_expander.variables.Variable;
 import net.papierkorb2292.command_expander.variables.VariableHolder;
 import org.jetbrains.annotations.Nullable;
@@ -35,6 +37,12 @@ public interface ImmediateValue {
      * @throws CommandSyntaxException An exception occurred when calculating the value
      */
     Either<VariableHolder, Stream<Variable>> calculate(CommandContext<ServerCommandSource> cc) throws CommandSyntaxException;
+
+    default void throwIfFeatureDisabled(CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+        if(!CommandExpander.isFeatureEnabled(cc.getSource().getServer(), CommandExpander.VARIABLE_FEATURE)) {
+            throw CommandExpander.USED_DISABLED_FEATURE.create(CommandExpander.VARIABLE_FEATURE);
+        }
+    }
 
     /**
      * Creates the error consumer for a {@link Instruction.CalculationContext} that sends the error to the command context

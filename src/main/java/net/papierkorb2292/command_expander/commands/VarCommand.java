@@ -37,6 +37,7 @@ public class VarCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher, boolean isDedicated) {
         dispatcher.register(
                 CommandManager.literal("var")
+                        .requires(source -> CommandExpander.isFeatureEnabled(source.getServer(), CommandExpander.VARIABLE_FEATURE))
                         .then(CommandManager.literal("add")
                                 .then(CommandManager.argument("id", VariableNameArgumentType.variableName())
                                         .then(CommandManager.argument("type", VariableTypeArgumentType.variableType(false))

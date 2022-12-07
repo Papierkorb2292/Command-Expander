@@ -30,6 +30,7 @@ public class InstructionListImmediateValue implements ImmediateValue {
      }
 
      public Either<VariableHolder, Stream<Variable>> calculate(CommandContext<ServerCommandSource> cc) throws CommandSyntaxException  {
+          throwIfFeatureDisabled(cc);
           Deque<Either<VariableHolder, Stream<Variable>>> stack = new LinkedList<>();
           Instruction.CalculationContext context = new Instruction.CalculationContext(stack, cc);
           try {

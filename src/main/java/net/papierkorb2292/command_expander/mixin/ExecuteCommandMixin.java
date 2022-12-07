@@ -17,6 +17,7 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.text.Texts;
 import net.minecraft.text.TranslatableText;
+import net.papierkorb2292.command_expander.CommandExpander;
 import net.papierkorb2292.command_expander.commands.ExecuteVarAllPredicateCountHolder;
 import net.papierkorb2292.command_expander.commands.VariableImmediateValueArgumentType;
 import net.papierkorb2292.command_expander.commands.VariablePathArgumentType;
@@ -58,6 +59,7 @@ public abstract class ExecuteCommandMixin {
     )
     private static void command_expander$addVariableCondition(CommandNode<ServerCommandSource> root, LiteralArgumentBuilder<ServerCommandSource> builder, boolean positive, CallbackInfoReturnable<ArgumentBuilder<ServerCommandSource, ?>> cir) {
         builder.then(CommandManager.literal("var")
+                .requires(source -> CommandExpander.isFeatureEnabled(source.getServer(), CommandExpander.VARIABLE_FEATURE))
                 .then(CommandManager.argument("value", VariableImmediateValueArgumentType.variableImmediateValue())
                         .then(command_expander$addVariableConditionOptions(root, CommandManager.literal("any"), positive, false, "value"))
                         .then(command_expander$addVariableConditionOptions(root, CommandManager.literal("all"), positive, true, "value"))
@@ -70,6 +72,7 @@ public abstract class ExecuteCommandMixin {
     )
     private static void command_expander$addVariableStore(LiteralCommandNode<ServerCommandSource> node, LiteralArgumentBuilder<ServerCommandSource> builder, boolean requestResult, CallbackInfoReturnable<ArgumentBuilder<ServerCommandSource, ?>> cir) {
         builder.then(CommandManager.literal("var")
+                .requires(source -> CommandExpander.isFeatureEnabled(source.getServer(), CommandExpander.VARIABLE_FEATURE))
                 .then(CommandManager.argument("path", VariablePathArgumentType.variablePath())
                         .redirect(node, redirectContext -> {
                             VariablePath destination = VariablePathArgumentType.getVariablePath(redirectContext, "path");

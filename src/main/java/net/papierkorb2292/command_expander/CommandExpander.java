@@ -2,11 +2,14 @@ package net.papierkorb2292.command_expander;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.gamerule.v1.CustomGameRuleCategory;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.LiteralText;
@@ -28,12 +31,19 @@ public class CommandExpander implements ModInitializer {
 					new LiteralText("Command Expander")
 							.styled(style -> style.withColor(Formatting.AQUA))));
 
-	@Override
+	public static final String VARIABLE_FEATURE = "Variables";
+	public static final DynamicCommandExceptionType USED_DISABLED_FEATURE = new DynamicCommandExceptionType(feature -> new LiteralText("Usage of disabled feature: " + feature));
+
 	public void onInitialize() {
 
 		CommandRegistrationCallback.EVENT.register(VarCommand::register);
 
-		FEATURE_MANAGER.addFeature("Variables", false);
+		FEATURE_MANAGER.addFeature(VARIABLE_FEATURE, false, (server, rule) -> {
+			// Update usability of '/var' for the clients
+			for(ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+				server.getPlayerManager().sendCommandTree(player);
+			}
+		});
 
 		LOGGER.info("Loaded Command Expander");
 	}

@@ -1,6 +1,7 @@
 package net.papierkorb2292.command_expander.variables.immediate;
 
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.server.command.ServerCommandSource;
 import net.papierkorb2292.command_expander.variables.Variable;
@@ -21,7 +22,8 @@ public class ConstantImmediateValue implements ImmediateValue {
     }
 
     @Override
-    public Either<VariableHolder, Stream<Variable>> calculate(CommandContext<ServerCommandSource> cc) {
+    public Either<VariableHolder, Stream<Variable>> calculate(CommandContext<ServerCommandSource> cc) throws CommandSyntaxException {
+        throwIfFeatureDisabled(cc);
         return constant.mapBoth(
                 holder -> holder,
                 List::stream

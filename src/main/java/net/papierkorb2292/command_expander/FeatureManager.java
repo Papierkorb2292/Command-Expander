@@ -22,7 +22,7 @@ public class FeatureManager {
         if(featureGameRules.containsKey(name)) {
             throw new IllegalArgumentException("Feature of name '" + name + "' already exist");
         }
-        featureGameRules.put(name, GameRuleRegistry.register(name, category, GameRuleFactory.createBooleanRule(enabled, changedCallback)));
+        featureGameRules.put(name, GameRuleRegistry.register("command_expander:" + name, category, GameRuleFactory.createBooleanRule(enabled, changedCallback)));
     }
 
     public void addFeature(String name, boolean enabled) {

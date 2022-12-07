@@ -12,6 +12,7 @@
     "ServerScoreboardAccessor",
     "immediateValues.ArgumentBuilderMixin",
     "immediateValues.BlockPosArgumentTypeMixin",
+    "immediateValues.CommandFunctionArgumentTypeMixin",
     "immediateValues.EntityArgumentTypeMixin",
     "immediateValues.EntitySummonArgumentTypeMixin",
     "immediateValues.ExecuteCommandMixin",
