@@ -1,0 +1,3 @@
+package net.papierkorb2292.command_expander.variables.immediate.operator;
+
+public interface NumberOperatorVariableType extends AddableOperatorVariableType, SubtractableOperatorVariableType, NegatableOperatorVariableType, MultipliableOperatorVariableType, DividableOperatorVariableType { }

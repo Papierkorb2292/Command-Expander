@@ -1,0 +1,3 @@
+package net.papierkorb2292.command_expander.variables.immediate.operator;
+
+public interface IntegerOperatorVariableType extends NumberOperatorVariableType, BitwiseOrAbleOperatorVariableType, BitwiseXorAbleOperatorVariableType, BitwiseAndAbleOperatorVariableType, BitwiseLeftShiftableOperatorVariableType, BitwiseRightShiftableOperatorVariableType { }

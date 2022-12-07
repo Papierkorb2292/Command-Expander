@@ -4,6 +4,32 @@
   "package": "net.papierkorb2292.command_expander.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "ArgumentTypesMixin",
+    "EntitySelectorReaderMixin",
+    "ExecuteCommandMixin",
+    "MinecraftServerMixin",
+    "ScoreboardMixin",
+    "ServerScoreboardAccessor",
+    "immediateValues.ArgumentBuilderMixin",
+    "immediateValues.BlockPosArgumentTypeMixin",
+    "immediateValues.CommandFunctionArgumentTypeMixin",
+    "immediateValues.EntityArgumentTypeMixin",
+    "immediateValues.EntitySummonArgumentTypeMixin",
+    "immediateValues.ExecuteCommandMixin",
+    "immediateValues.LootNumberProviderTypesMixin",
+    "immediateValues.NbtCompoundAccessor",
+    "immediateValues.NbtElementArgumentTypeMixin",
+    "immediateValues.NbtListAccessor",
+    "immediateValues.RotationArgumentTypeMixin",
+    "immediateValues.SetBlockCommandMixin",
+    "immediateValues.StringNbtReaderMixin",
+    "immediateValues.SummonCommandMixin",
+    "immediateValues.TeleportCommandMixin",
+    "immediateValues.TextSerializerMixin",
+    "immediateValues.Vec3ArgumentTypeMixin"
+  ],
+  "client": [
+    "client.CommandSuggestorMixin"
   ],
   "injectors": {
     "defaultRequire": 1
