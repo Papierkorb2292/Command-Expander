@@ -12,6 +12,8 @@ import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.command.argument.NumberRangeArgumentType;
+import net.minecraft.predicate.NumberRange;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ExecuteCommand;
 import net.minecraft.server.command.ServerCommandSource;
@@ -140,7 +142,26 @@ public abstract class ExecuteCommandMixin {
                                                     all && stream.allMatch(var -> var.getType().instanceOf(type)) ||
                                                             !all && stream.anyMatch(var -> var.getType().instanceOf(type)))
                                     );
-                                })));
+                                })))
+                .then(CommandManager.literal("in_range")
+                        .then(CommandManager.argument("range", NumberRangeArgumentType.floatRange())
+                                .executes(positive
+                                        ? (all
+                                            ? context -> command_expander$executeAllPositiveRange(valueName, "range", context)
+                                            : context -> command_expander$executeAnyPositiveRange(valueName, "range", context))
+                                        : (all
+                                            ? context -> command_expander$executeAllNegativeRange(valueName, "range", context)
+                                            : context -> command_expander$executeAnyNegativeRange(valueName, "range", context)))
+                                .fork(root, context -> {
+                                    NumberRange.FloatRange range = NumberRangeArgumentType.FloatRangeArgumentType.getRangeArgument(context, "range");
+                                    return VariableImmediateValueArgumentType.getImmediateValue(context, valueName).calculate(context).map(
+                                            holder -> getSourceOrEmptyForConditionFork(context, positive, holder.variable != null && range.test(holder.variable.doubleValue())),
+                                            stream -> getSourceOrEmptyForConditionFork(context, positive,
+                                                    all && stream.allMatch(var -> var != null && range.test(var.doubleValue())) ||
+                                                            !all && stream.anyMatch(var -> var != null && range.test(var.doubleValue()))
+                                    ));
+                                })
+                        ));
     }
 
     private static int command_expander$executeAnyNegativeMatch(String firstValueName, String secondValueName, CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
@@ -292,6 +313,70 @@ public abstract class ExecuteCommandMixin {
                         (holder, var) -> new ExecuteVarAllPredicateCountHolder(
                                 holder.count() + 1,
                                 holder.filteredCount() + (var.getType().instanceOf(type) ? 1 : 0)),
+                        ExecuteVarAllPredicateCountHolder::add
+                )
+        );
+    }
+
+    private static int command_expander$executeAnyPositiveRange(String valueName, String rangeName, CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        Either<VariableHolder, Stream<Variable>> value = VariableImmediateValueArgumentType.getImmediateValue(context, valueName).calculate(context);
+        NumberRange.FloatRange range = NumberRangeArgumentType.FloatRangeArgumentType.getRangeArgument(context, rangeName);
+        int result = command_expander$getRangeCount(value, range);
+        if (result == 0) {
+            throw CONDITIONAL_FAIL_EXCEPTION.create();
+        }
+        context.getSource().sendFeedback(Text.translatable("commands.execute.conditional.pass_count", result), false);
+        return result;
+    }
+
+    private static int command_expander$executeAnyNegativeRange(String valueName, String rangeName, CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        Either<VariableHolder, Stream<Variable>> value = VariableImmediateValueArgumentType.getImmediateValue(context, valueName).calculate(context);
+        NumberRange.FloatRange range = NumberRangeArgumentType.FloatRangeArgumentType.getRangeArgument(context, rangeName);
+        int result = command_expander$getRangeCount(value, range);
+        if (result == 0) {
+            context.getSource().sendFeedback(Text.translatable("commands.execute.conditional.pass"), false);
+            return 1;
+        }
+        throw CONDITIONAL_FAIL_COUNT_EXCEPTION.create(result);
+    }
+
+    private static int command_expander$executeAllPositiveRange(String valueName, String rangeName, CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        Either<VariableHolder, Stream<Variable>> value = VariableImmediateValueArgumentType.getImmediateValue(context, valueName).calculate(context);
+        NumberRange.FloatRange range = NumberRangeArgumentType.FloatRangeArgumentType.getRangeArgument(context, rangeName);
+        ExecuteVarAllPredicateCountHolder count = command_expander$getRangeAndTotalCount(value, range);
+        if(count.count() != count.filteredCount()) {
+            throw COMMAND_EXPANDER$CONDITIONAL_VAR_ALL_FAIL_EXCEPTION.create(count.count(), count.filteredCount());
+        }
+        context.getSource().sendFeedback(Text.of(String.format("Test passed, count: %s", count.filteredCount())), false);
+        return count.count();
+    }
+
+    private static int command_expander$executeAllNegativeRange(String valueName, String rangeName, CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        Either<VariableHolder, Stream<Variable>> value = VariableImmediateValueArgumentType.getImmediateValue(context, valueName).calculate(context);
+        NumberRange.FloatRange range = NumberRangeArgumentType.FloatRangeArgumentType.getRangeArgument(context, rangeName);
+        ExecuteVarAllPredicateCountHolder count = command_expander$getRangeAndTotalCount(value, range);
+        if(count.count() == count.filteredCount()) {
+            throw CONDITIONAL_FAIL_EXCEPTION.create();
+        }
+        context.getSource().sendFeedback(Text.of(String.format("Test passed, count: %s", count.filteredCount())), false);
+        return count.count();
+    }
+
+    private static int command_expander$getRangeCount(Either<VariableHolder, Stream<Variable>> value, NumberRange.FloatRange range) {
+        return value.map(
+                holder -> holder.variable != null && range.test(holder.variable.doubleValue()) ? 1 : 0,
+                stream -> (int)stream.filter(var -> var != null && range.test(var.doubleValue())).count()
+        );
+    }
+
+    private static ExecuteVarAllPredicateCountHolder command_expander$getRangeAndTotalCount(Either<VariableHolder, Stream<Variable>> value, NumberRange.FloatRange range) {
+        return value.map(
+                holder -> new ExecuteVarAllPredicateCountHolder(1, holder.variable != null && range.test(holder.variable.doubleValue()) ? 1 : 0),
+                stream -> stream.reduce(
+                        ExecuteVarAllPredicateCountHolder.IDENTITY,
+                        (holder, var) -> new ExecuteVarAllPredicateCountHolder(
+                                holder.count() + 1,
+                                holder.filteredCount() + (var != null && range.test(var.doubleValue()) ? 1 : 0)),
                         ExecuteVarAllPredicateCountHolder::add
                 )
         );
