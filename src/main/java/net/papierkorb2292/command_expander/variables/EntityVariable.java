@@ -40,7 +40,7 @@ public class EntityVariable extends Variable {
 
     @Override
     public String stringValue() {
-        return uuid.toString();
+        return "(entity)\"" + uuid.toString() + "\"";
     }
 
     @Override
@@ -102,11 +102,14 @@ public class EntityVariable extends Variable {
                         }
                         throw VariableManager.PARSE_EXCEPTION.create(var.stringValue(), type.asString());
                     }
-                    try {
-                        return new EntityVariable(UUID.fromString(var.stringValue()));
-                    } catch(IllegalArgumentException e) {
-                        throw VariableManager.PARSE_EXCEPTION.create(var.stringValue(), type.asString());
+                    if(var instanceof StringVariable string) {
+                        try {
+                            return new EntityVariable(UUID.fromString(string.getString()));
+                        } catch (IllegalArgumentException e) {
+                            throw VariableManager.PARSE_EXCEPTION.create(var.stringValue(), type.asString());
+                        }
                     }
+                    throw VariableManager.PARSE_EXCEPTION.create(var.stringValue(), type.asString());
                 },
                 new VariableCodec() {
 
