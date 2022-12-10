@@ -57,7 +57,7 @@ public class ImmediateValueCompiler {
             reader.skipWhitespace();
             addedInstructions += compileValue(instructions, instructionIndex + addedInstructions, reader);
             addedInstructions += compileOptionalIndexing(instructions, instructionIndex + addedInstructions, reader);
-            ops.push(new IndexedOperator(instructionIndex, op));
+            ops.push(new IndexedOperator(instructionIndex + addedInstructions, op));
         }
         if(ops.size() > 0) {
             //Rearranges operations according to their order and adds them to the instructions
@@ -65,11 +65,12 @@ public class ImmediateValueCompiler {
             Deque<IndexedOperator> movingOps = new LinkedList<>(); //Multiple operations can be moved at the same time
             IndexedOperator currentOp = ops.removeLast();
             movingOps.push(currentOp);
+            int addedOperators = 0;
             while(ops.size() > 0) {
                 //noinspection ConstantConditions <- IntelliJ marks a possible NullPointerException at ops.peekLast() because of the following calls to instructions.add and movingOps.pop
                 while(currentOp.op.order >= ops.peekLast().op.order) { //If the next operator has a lower order, the current operator is immediately added
-                    instructions.add(currentOp.destIndex + addedInstructions, currentOp.op.instruction);
-                    ++addedInstructions;
+                    instructions.add(currentOp.destIndex + addedOperators, currentOp.op.instruction);
+                    ++addedOperators;
                     movingOps.pop();
                     if(movingOps.size() > 0) {
                         movingOps.peek().destIndex = currentOp.destIndex; //The next moving operator is moved to the position of the previous operator
@@ -85,10 +86,11 @@ public class ImmediateValueCompiler {
             if(movingOps.size() > 0) { //All operators left are added to the instructions
                 int destIndex = movingOps.peek().destIndex;
                 while (movingOps.size() > 0) {
-                    instructions.add(destIndex + addedInstructions, movingOps.pop().op.instruction);
-                    ++addedInstructions;
+                    instructions.add(destIndex + addedOperators, movingOps.pop().op.instruction);
+                    ++addedOperators;
                 }
             }
+            addedInstructions += addedOperators;
         }
         return addedInstructions;
     }

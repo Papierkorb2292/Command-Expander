@@ -7,6 +7,7 @@ import com.mojang.serialization.DynamicOps;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.papierkorb2292.command_expander.variables.immediate.operator.AddableOperatorVariableType;
+import net.papierkorb2292.command_expander.variables.immediate.operator.SubtractableOperatorVariableType;
 
 import java.util.*;
 import java.util.stream.IntStream;
@@ -162,7 +163,7 @@ public class ListVariable extends IndexableVariable {
         return IntStream.range(0, value.size()).mapToObj(IntVariable::new);
     }
 
-    public static class ListVariableType implements VariableType, AddableOperatorVariableType {
+    public static class ListVariableType implements VariableType, AddableOperatorVariableType, SubtractableOperatorVariableType {
 
         public VariableType content;
 
@@ -304,6 +305,17 @@ public class ListVariable extends IndexableVariable {
             ListVariable result = new ListVariable((ListVariableType)left.getType());
             result.value.addAll(((ListVariable)left).value);
             result.value.addAll(((ListVariable)right).value);
+            return result;
+        }
+
+        @Override
+        public Variable subtractVariables(Variable left, Variable right) {
+            if(!(left instanceof ListVariable && right instanceof ListVariable)) {
+                return null;
+            }
+            ListVariable result = new ListVariable((ListVariableType)left.getType());
+            result.value.addAll(((ListVariable)left).value);
+            result.value.removeAll(((ListVariable)right).value);
             return result;
         }
     }
