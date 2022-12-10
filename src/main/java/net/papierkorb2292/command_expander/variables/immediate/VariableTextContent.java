@@ -7,8 +7,10 @@ import com.mojang.datafixers.util.Either;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.*;
+import net.papierkorb2292.command_expander.variables.StringVariable;
 import net.papierkorb2292.command_expander.variables.Variable;
 import net.papierkorb2292.command_expander.variables.VariableHolder;
+import net.papierkorb2292.command_expander.variables.VariableManager;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
@@ -47,13 +49,20 @@ public class VariableTextContent implements TextContent {
         Either<VariableHolder, Stream<Variable>> result = value.calculate(new CommandContext<>(source, null, null, null, null, null, null, null, null, false));
         if(result.left().isPresent()) {
             Variable var = result.left().get().variable;
-            return Text.literal(var == null ? "null" : var.stringValue());
+            return Text.literal(var == null ? "null" : ((StringVariable) VariableManager.castVariable(StringVariable.StringVariableType.INSTANCE, var)).getString());
         }
         if(result.right().isEmpty()) {
             throw new IllegalArgumentException("Invalid Either given to VariableText. Neither left nor right were present");
         }
-        Stream<String> texts = result.right().get().map(
-                var -> var == null ? "null" : var.stringValue()
+        Stream<String> texts = result.right().get().flatMap(
+                var -> {
+                    try {
+                        return Stream.of(var == null ? "null" : ((StringVariable) VariableManager.castVariable(StringVariable.StringVariableType.INSTANCE, var)).getString());
+                    } catch (CommandSyntaxException e) {
+                        source.sendError(Texts.toText(e.getRawMessage()));
+                        return null;
+                    }
+                }
         );
         return Texts.parse(source, this.separator, sender, depth)
                 .map((textx) -> texts

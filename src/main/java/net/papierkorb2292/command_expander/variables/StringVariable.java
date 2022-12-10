@@ -42,7 +42,23 @@ public class StringVariable extends Variable {
 
     @Override
     public String stringValue() {
-        return "\""+value+"\"";
+        StringBuilder result = new StringBuilder();
+        result.append('\"');
+        String value = this.value;
+        for(int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            switch(c) {
+                case '\t' -> result.append('\\').append('t');
+                case '\b' -> result.append('\\').append('b');
+                case '\n' -> result.append('\\').append('n');
+                case '\r' -> result.append('\\').append('r');
+                case '\f' -> result.append('\\').append('f');
+                case '\\' -> result.append('\\').append('\\');
+                case '"' -> result.append('\\').append('"');
+                default -> result.append(c);
+            }
+        }
+        return result.append('\"').toString();
     }
 
     @Override

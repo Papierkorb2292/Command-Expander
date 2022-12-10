@@ -169,6 +169,25 @@ public class ImmediateValueCompiler {
             int openParentheses = 1, cursor = reader.getCursor(); // Skipping to the closing parentheses
             while(reader.canRead() && openParentheses != 0) {
                 c = reader.read();
+                if(c == '"') {
+                    // Skip strings
+                    boolean escaped = false;
+                    while(reader.canRead()) {
+                        if(escaped) {
+                            escaped = false;
+                            reader.skip();
+                            continue;
+                        }
+                        c = reader.read();
+                        if(c == '"') {
+                            break;
+                        }
+                        if(c == '\\') {
+                            escaped = true;
+                        }
+                    }
+                    continue;
+                }
                 if(c == ')') {
                     --openParentheses;
                     continue;
@@ -256,23 +275,27 @@ public class ImmediateValueCompiler {
         } else {
             if(c == '"') {
                 // The value is a string
-                String value = reader.readStringUntil('"');
-                instructions.add(instructionIndex, Instructions.getLoadConstant(new StringVariable(value)));
+                StringBuilder result = new StringBuilder();
+                while(true){
+                    if(!reader.canRead()) {
+                        throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedEndOfQuote().createWithContext(reader);
+                    }
+                    if(reader.peek() == '"') {
+                        reader.skip();
+                        break;
+                    }
+                    result.append(readCharacter(reader, '"'));
+                }
+                instructions.add(instructionIndex, Instructions.getLoadConstant(new StringVariable(result.toString())));
             } else if(c == '\'') {
                 // The value is a char, which will be represented as short
                 if(!reader.canRead(2)) {
                     throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
                 }
-                char value = reader.read();
-                if(value == '\'') {
+                if(reader.peek() == '\'') {
                     throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
                 }
-                if(value == '\\') {
-                    value = reader.read();
-                    if(!reader.canRead()) {
-                        throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
-                    }
-                }
+                char value = readCharacter(reader, '\'');
                 reader.expect('\'');
                 instructions.add(instructionIndex, Instructions.getLoadConstant(new ShortVariable((short)value)));
             } else {
@@ -352,6 +375,51 @@ public class ImmediateValueCompiler {
             }
         }
         return addedInstructions + addedPostInstructions + 1;
+    }
+
+    private static char readCharacter(StringReader reader, char endCharacter) throws CommandSyntaxException {
+        char value = reader.read();
+        if(value == '\\') {
+            value = switch(reader.peek()) {
+                case 't' -> '\t';
+                case 'b' -> '\b';
+                case 'n' -> '\n';
+                case 'r' -> '\r';
+                case 'f' -> '\f';
+                case '\'' -> '\'';
+                case 'u' -> {
+                    if (!reader.canRead(4)) {
+                        throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
+                    }
+                    char result = 0;
+                    for (int i = 0; i < 4; i++) {
+                        char next = reader.read();
+                        result <<= 4;
+                        if (next >= '0' && next <= '9') {
+                            result += (next - '0');
+                        } else if (next >= 'a' && next <= 'f') {
+                            result += (next - 'a' + 10);
+                        } else if (next >= 'A' && next <= 'F') {
+                            result += (next - 'A' + 10);
+                        } else {
+                            throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
+                        }
+                    }
+                    yield result;
+                }
+                default -> {
+                    if(reader.peek() != endCharacter) {
+                        throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerInvalidEscape().createWithContext(reader, String.valueOf(value));
+                    }
+                    yield endCharacter;
+                }
+            };
+            reader.skip();
+            if(!reader.canRead()) {
+                throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
+            }
+        }
+        return value;
     }
 
     /**
