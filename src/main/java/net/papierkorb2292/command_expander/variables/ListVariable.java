@@ -24,26 +24,28 @@ public class ListVariable extends IndexableVariable {
 
     @Override
     public int intValue() {
+        removeEndingNulls();
         return value.size();
     }
 
     @Override
     public long longValue() {
-        return value.size();
+        return intValue();
     }
 
     @Override
     public float floatValue() {
-        return value.size();
+        return intValue();
     }
 
     @Override
     public double doubleValue() {
-        return value.size();
+        return intValue();
     }
 
     @Override
     public String stringValue() {
+        removeEndingNulls();
         StringBuilder sb = new StringBuilder();
         sb.append("{ ");
         if(value.size() > 0) {
@@ -76,6 +78,7 @@ public class ListVariable extends IndexableVariable {
 
     @Override
     public NbtElement toNbt() throws CommandSyntaxException {
+        removeEndingNulls();
         NbtList result = new NbtList();
         for(Variable var : value) {
             result.add(Variable.createNbt(var));
@@ -109,7 +112,10 @@ public class ListVariable extends IndexableVariable {
         int index = indexVar.intValue();
         if(index >= 0 && index < this.value.size()) {
             Variable prev = this.value.set(index, value);
-            return prev == null || !prev.equals(value);
+            if(value == null && index == this.value.size() - 1) {
+                removeEndingNulls();
+            }
+            return !Objects.equals(prev, value);
         }
         return false;
     }
@@ -142,6 +148,9 @@ public class ListVariable extends IndexableVariable {
 
     @Override
     public int setAll(Variable value) {
+        if(value == null) {
+            return clear();
+        }
         for(int i = 0; i < this.value.size(); ++i) {
             this.value.set(i, value);
         }
@@ -161,6 +170,14 @@ public class ListVariable extends IndexableVariable {
     @Override
     public Stream<Variable> getIndices() {
         return IntStream.range(0, value.size()).mapToObj(IntVariable::new);
+    }
+
+    public void removeEndingNulls() {
+        int i = value.size() - 1;
+        while(i >= 0 && value.get(i) == null) {
+            value.remove(i);
+            i--;
+        }
     }
 
     public static class ListVariableType implements VariableType, AddableOperatorVariableType, SubtractableOperatorVariableType {
@@ -265,23 +282,8 @@ public class ListVariable extends IndexableVariable {
 
             @Override
             public <T> DataResult<T> write(Variable input, DynamicOps<T> ops, T prefix) {
-                //ListVariable list = (ListVariable)input;
-                //VariableCodec contentCodec = TYPES_BY_CLASS.get(list.type.content.getClass()).codec;
-                //ListBuilder<T> builder = ops.listBuilder();
-                //StringBuilder errorBuilder = new StringBuilder();
-                //T empty = ops.emptyMap();
-                //for(int i = 0; i < list.value.size(); ++i) {
-                //    Either<T, DataResult.PartialResult<T>> result = contentCodec.encode(list.value.get(i), ops, empty)
-                //            .promotePartial(error -> { }).get();
-                //    builder.add(result.left().isPresent() ? result.left().get() : empty);
-                //    if(result.right().isPresent()) {
-                //        errorBuilder.append(result.right().get().message()).append(" at index: ").append(i).append("; ");
-                //    }
-                //}
-                //String error = errorBuilder.append(")").toString();
-                //DataResult<T> result = builder.build(prefix);
-                //return error.isEmpty() ? result : result.flatMap(value -> DataResult.error("(" + error, value));
                 ListVariable list = (ListVariable) input;
+                list.removeEndingNulls();
                 return encodeList(list.value, ops, prefix, list.type.content);
             }
             @Override
@@ -292,6 +294,7 @@ public class ListVariable extends IndexableVariable {
                                 pair.mapFirst(list -> {
                                     ListVariable result = new ListVariable(listType);
                                     result.value.addAll(list);
+                                    result.removeEndingNulls();
                                     return result;
                                 }));
             }
