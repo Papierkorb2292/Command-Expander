@@ -395,7 +395,8 @@ public class ImmediateValueCompiler {
                     }
                     char result = 0;
                     for (int i = 0; i < 4; i++) {
-                        char next = reader.read();
+                        reader.skip();
+                        char next = reader.peek();
                         result <<= 4;
                         if (next >= '0' && next <= '9') {
                             result += (next - '0');
