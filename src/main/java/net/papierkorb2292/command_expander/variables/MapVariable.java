@@ -194,77 +194,117 @@ public class MapVariable extends IndexableVariable {
             return "map";
         }
 
+        public MapVariableType combine(MapVariableType other) {
+            MapVariableType mapType = this;
+            VariableType keyType = key, valueType = value;
+            if(keyType == null || valueType == null) {
+                mapType = new MapVariableType();
+                mapType.key = keyType == null ? other.key : keyType;
+                mapType.value = valueType == null ? other.value : valueType;
+            }
+            return mapType;
+        }
+
+        private static MapVariable getMapFromListLike(ListLike list, MapVariableType type) throws CommandSyntaxException {
+            if(list.getContentType() == null) {
+                while(list.hasNext()) {
+                    if(list.next() != null) {
+                        throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                    }
+                }
+                return new MapVariable(type);
+            }
+            if(!(list.getContentType() instanceof MapEntryVariable.MapEntryVariableType entryType)) {
+                throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type, list.getTypeString());
+            }
+            type = type.combine(new MapVariableType(entryType.key, entryType.value));
+            VariableType keyType = type.key;
+            VariableType valueType = type.value;
+            VariableManager.Caster
+                    keyCaster = keyType == null ? null : keyType.getTemplate().caster,
+                    valueCaster = valueType == null ? null : valueType.getTemplate().caster;
+            MapVariable map = new MapVariable(type);
+            while(list.hasNext()) {
+                MapEntryVariable entry = (MapEntryVariable)list.next();
+                if(entry == null) {
+                    continue;
+                }
+                Variable key = entry.value;
+                if(key != null) {
+                    if(keyType == null) {
+                        throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                    }
+                    key = keyCaster.cast(keyType, key);
+                }
+                Variable value = entry.key;
+                if(value != null) {
+                    if(valueType == null) {
+                        throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                    }
+                    value = valueCaster.cast(valueType, value);
+                }
+                map.value.put(key, value);
+            }
+            return map;
+        }
+
         public static final VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(2, MapVariableType::new, (type, var) -> {
             MapVariableType mapType = (MapVariableType)type;
-            VariableType keyType = mapType.key, valueType = mapType.value;
             if(var instanceof ListVariable list) {
-                if(list.type.content == null) {
-                    if(list.value.stream().allMatch(Objects::isNull)) {
-                        return new MapVariable(mapType);
+                return getMapFromListLike(new ListLike() {
+
+                    private final Iterator<Variable> it = list.value.iterator();
+
+                    @Override
+                    public VariableType getContentType() {
+                        return list.getContentType();
                     }
-                    throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
-                }
-                if(!(list.type.content instanceof MapEntryVariable.MapEntryVariableType entryType)) {
-                    throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type, var.getType().asString());
-                }
-                if(keyType == null || valueType == null) {
-                    mapType = new MapVariableType();
-                    if(keyType == null) {
-                        keyType = entryType.key;
+
+                    @Override
+                    public boolean hasNext() {
+                        return it.hasNext();
                     }
-                    mapType.key = keyType;
-                    if(valueType == null) {
-                        valueType = entryType.value;
+
+                    @Override
+                    public Variable next() {
+                        return it.next();
                     }
-                    mapType.value = valueType;
-                }
-                VariableManager.Caster
-                        keyCaster = keyType == null ? null : keyType.getTemplate().caster,
-                        valueCaster = valueType == null ? null : valueType.getTemplate().caster;
-                MapVariable map = new MapVariable(mapType);
-                for(Variable content : list.value) {
-                    MapEntryVariable entry = (MapEntryVariable)content;
-                    if(entry == null) {
-                        continue;
+
+                    @Override
+                    public String getTypeString() {
+                        return list.type.asString();
                     }
-                    Variable key = entry.value;
-                    if(key != null) {
-                        if(keyType == null) {
-                            throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
-                        }
-                        key = keyCaster.cast(keyType, key);
+                }, mapType);
+            }
+            if(var instanceof IteratorVariable it) {
+                return getMapFromListLike(new ListLike() {
+                    @Override
+                    public VariableType getContentType() {
+                        return it.getType().getChild(0);
                     }
-                    Variable value = entry.key;
-                    if(value != null) {
-                        if(valueType == null) {
-                            throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
-                        }
-                        value = valueCaster.cast(valueType, value);
+
+                    @Override
+                    public boolean hasNext() {
+                        return it.hasNext();
                     }
-                    map.value.put(key, value);
-                }
-                return map;
+
+                    @Override
+                    public Variable next() throws CommandSyntaxException {
+                        return it.next();
+                    }
+
+                    @Override
+                    public String getTypeString() {
+                        return it.getType().asString();
+                    }
+                }, mapType);
             }
             if(!(var instanceof MapVariable map)) {
                 throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type.asString(), var == null ? "null" : var.getType().asString());
             }
-            if(keyType == null || valueType == null) {
-                mapType = new MapVariableType();
-                if(keyType == null) {
-                    VariableType originalKeyType = map.type.key;
-                    mapType.key = originalKeyType;
-                    keyType = originalKeyType;
-                } else {
-                    mapType.key = keyType;
-                }
-                if(valueType == null) {
-                    VariableType originalValueType = map.type.value;
-                    mapType.value = originalValueType;
-                    valueType = originalValueType;
-                } else {
-                    mapType.value = valueType;
-                }
-            }
+            mapType = mapType.combine(new MapVariableType(map.type.key, map.type.value));
+            VariableType keyType = mapType.key;
+            VariableType valueType = mapType.value;
             VariableManager.Caster
                     keyCaster = keyType == null ? null : keyType.getTemplate().caster,
                     valueCaster = valueType == null ? null : valueType.getTemplate().caster;
@@ -344,6 +384,14 @@ public class MapVariable extends IndexableVariable {
             result.value.putAll(((MapVariable)left).value);
             result.value.putAll(((MapVariable)right).value);
             return result;
+        }
+
+        private interface ListLike {
+
+            VariableType getContentType();
+            boolean hasNext();
+            Variable next() throws CommandSyntaxException;
+            String getTypeString();
         }
     }
 }

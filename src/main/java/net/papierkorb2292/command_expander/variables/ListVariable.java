@@ -256,6 +256,25 @@ public class ListVariable extends IndexableVariable {
                 }
                 return result;
             }
+            if(var instanceof IteratorVariable it) {
+                if(nullType) {
+                    VariableType itContentType = it.getType().getChild(0);
+                    if(itContentType == null) {
+                        while(it.hasNext()) {
+                            if(it.next() != null) {
+                                throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                            }
+                        }
+                        return new ListVariable(listType);
+                    }
+                    childrenCaster = itContentType.getTemplate().caster;
+                }
+                ListVariable result = new ListVariable(listType);
+                while(it.hasNext()) {
+                    result.value.add(childrenCaster.cast(listType, it.next()));
+                }
+                return result;
+            }
             if(!(var instanceof ListVariable list)) {
                 throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type.asString(), var == null ? "null" : var.getType().asString());
             }

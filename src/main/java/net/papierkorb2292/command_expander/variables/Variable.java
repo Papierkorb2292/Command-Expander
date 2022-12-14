@@ -287,8 +287,13 @@ public abstract class Variable {
             int children = getTemplate().childrenCount;
             if(children > 0) {
                 sb.append('<');
-                for (int i = 0; i < children; ++i) {
-                    sb.append(getChild(i).asString());
+                VariableType child = getChild(0);
+                sb.append(child == null ? "null" : child.asString());
+                if(children > 1) {
+                    for (int i = 1; i < children; ++i) {
+                        child = getChild(i);
+                        sb.append(", ").append(child == null ? "null" : child.asString());
+                    }
                 }
                 sb.append('>');
             }

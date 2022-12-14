@@ -121,6 +121,10 @@ public class IteratorVariable extends Variable {
         return iterator.next();
     }
 
+    public boolean hasNext() {
+        return iterator.hasNext();
+    }
+
     public Stream<Variable> next(int count, Consumer<Text> errorConsumer) {
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(new AbstractIterator<>() {
 
@@ -190,17 +194,43 @@ public class IteratorVariable extends Variable {
         public static VariableTypeTemplate TEMPLATE = new VariableTypeTemplate(1, IteratorVariableType::new, (type, var) -> {
             IteratorVariableType itType = (IteratorVariableType) type;
             if(var instanceof ListVariable list) {
+                if(itType.content == null) {
+                    if(list.type.content == null && list.value.stream().anyMatch(Objects::isNull)) {
+                        throw VariableManager.CHILD_TYPE_WAS_NULL_BUT_CHILDREN_WERE_PRESENT_EXCEPTION.create();
+                    }
+                    itType = new IteratorVariableType(list.type.content);
+                }
                 return new IteratorVariable(new Iterator.List(
                         (ListVariable) VariableManager.castVariable(
                                 new ListVariable.ListVariableType(itType.content),
                                 list)),
                         itType);
             }
+            if(var instanceof MapVariable map) {
+                MapEntryVariable.MapEntryVariableType mapEntryType = (MapEntryVariable.MapEntryVariableType)map.getType().getNextLoweredType().getChild(0);
+                VariableType keyType, valueType;
+                if(itType.content == null) {
+                    itType = new IteratorVariableType(mapEntryType);
+                    keyType = mapEntryType.key;
+                    valueType = mapEntryType.value;
+                } else {
+                    if(!(itType.content instanceof MapEntryVariable.MapEntryVariableType entryType)) {
+                        throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type.asString(), var.getType().asString());
+                    }
+                    keyType = entryType.key;
+                    valueType = entryType.value;
+                }
+                return new IteratorVariable(new Iterator.List(
+                        (ListVariable) VariableManager.castVariable(
+                                new ListVariable.ListVariableType(new MapEntryVariable.MapEntryVariableType(keyType, valueType)),
+                                map)),
+                        itType);
+            }
             if(!(var instanceof IteratorVariable iterator)) {
                 throw VariableManager.INCOMPATIBLE_TYPES_EXCEPTION.create(type.asString(), var.getType().asString());
             }
             Iterator it = iterator.iterator;
-            if(itType.typeEquals(iterator.type)) {
+            if(itType.typeEquals(iterator.type) || itType.content == null) {
                 return new IteratorVariable(it, iterator.type);
             }
             return new IteratorVariable(it.cast(itType.content), itType);
@@ -420,7 +450,7 @@ public class IteratorVariable extends Variable {
                 return result;
             }
 
-            protected  List(ListVariable list, int index) {
+            protected List(ListVariable list, int index) {
                 this.list = list;
                 this.index = index;
             }
@@ -472,12 +502,12 @@ public class IteratorVariable extends Variable {
                 public <T> DataResult<Pair<Iterator, T>> decode(DynamicOps<T> ops, T input, VariableType contentType) {
                     return ops.getMap(input).flatMap(
                             map -> ops.getNumberValue(map.get("index")).flatMap(
-                                            index -> VariableCodec.decodeList(ops, map.get("content"), contentType).map(
-                                                    content -> {
-                                                        ListVariable var = new ListVariable(new ListVariable.ListVariableType(contentType));
-                                                        var.value.addAll(content.getFirst());
-                                                        return new Pair<>(new List(var, index.intValue()), ops.empty());
-                                                    })));
+                                    index -> VariableCodec.decodeList(ops, map.get("content"), contentType).map(
+                                            content -> {
+                                                ListVariable var = new ListVariable(new ListVariable.ListVariableType(contentType));
+                                                var.value.addAll(content.getFirst());
+                                                return new Pair<>(new List(var, index.intValue()), ops.empty());
+                                            })));
                 }
             };
         }
