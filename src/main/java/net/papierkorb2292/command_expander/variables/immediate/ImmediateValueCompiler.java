@@ -190,6 +190,18 @@ public class ImmediateValueCompiler {
                     }
                     continue;
                 }
+                if(c == '\'') {
+                    if(!reader.canRead(2)) {
+                        throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
+                    }
+                    if(reader.read() == '\\') {
+                        reader.skip();
+                        if(!reader.canRead(2)) {
+                            throw EXPECTED_VALUE_EXCEPTION.createWithContext(reader);
+                        }
+                    }
+                    reader.skip();
+                }
                 if(c == ')') {
                     --openParentheses;
                     continue;
@@ -412,7 +424,7 @@ public class ImmediateValueCompiler {
                 }
                 default -> {
                     if(reader.peek() != endCharacter) {
-                        throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerInvalidEscape().createWithContext(reader, String.valueOf(value));
+                        throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerInvalidEscape().createWithContext(reader, String.valueOf(reader.peek()));
                     }
                     yield endCharacter;
                 }
