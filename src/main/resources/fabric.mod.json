@@ -4,7 +4,7 @@
   "version": "${version}",
 
   "name": "Command Expander",
-  "description": "Expands the vanilla commands with the following features:",
+  "description": "Expands the vanilla commands with the following features: -Variables ... Yes, that's all for now",
   "authors": [
     "Papierkorb2292"
   ],
