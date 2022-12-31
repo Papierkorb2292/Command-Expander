@@ -18,6 +18,7 @@
     "immediateValues.ExecuteCommandMixin",
     "immediateValues.LootNumberProviderTypesMixin",
     "immediateValues.NbtCompoundAccessor",
+    "immediateValues.NbtCompoundArgumentTypeMixin",
     "immediateValues.NbtElementArgumentTypeMixin",
     "immediateValues.NbtListAccessor",
     "immediateValues.RotationArgumentTypeMixin",

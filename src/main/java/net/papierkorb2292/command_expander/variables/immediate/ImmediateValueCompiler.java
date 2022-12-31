@@ -218,7 +218,10 @@ public class ImmediateValueCompiler {
             boolean isCasting = true;
             if(reader.canRead()) { // If an operator is present or the reader has reached the end, the content has to be a term
                 Operator op = checkMatchingOperator(reader);
-                if(op != null) {
+                if(
+                        op != null
+                        || reader.peek() == '[' // The index operator is not covered by 'checkMatchingOperator'
+                ) {
                     isCasting = false;
                 }
             } else {
@@ -702,7 +705,7 @@ public class ImmediateValueCompiler {
         registerFunction("copySign", 2, Instructions.COPY_SIGN);
         registerFunction("nextAfter", 2, Instructions.NEXT_AFTER);
         registerFunction("random", 0, Instructions.RANDOM);
-        registerFunction("abs", 2, Instructions.ABS);
+        registerFunction("abs", 1, Instructions.ABS);
         registerFunction("multiplyHigh", 2, Instructions.MUTLIPLY_HIGH);
         registerFunction("scalb", 2, Instructions.SCALB);
         registerFunction("fma", 3, Instructions.FMA);

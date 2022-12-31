@@ -243,11 +243,11 @@ public final class Instructions {
         }
     }
 
-    public static final Instruction FMA = getFloatingPointTernayInstruction(Math::fma, Math::fma, "fma");
-    public static final Instruction LERP = getFloatingPointTernayInstruction(MathHelper::lerp, MathHelper::lerp, "lerp");
-    public static final Instruction GET_LERP_PROGRESS = getFloatingPointTernayInstruction(MathHelper::getLerpProgress, MathHelper::getLerpProgress, "lerpProgress");
+    public static final Instruction FMA = getFloatingPointTernaryInstruction(Math::fma, Math::fma, "fma");
+    public static final Instruction LERP = getFloatingPointTernaryInstruction(MathHelper::lerp, MathHelper::lerp, "lerp");
+    public static final Instruction GET_LERP_PROGRESS = getFloatingPointTernaryInstruction(MathHelper::getLerpProgress, MathHelper::getLerpProgress, "lerpProgress");
 
-    public static Instruction getFloatingPointTernayInstruction(FloatingPointTernaryInstruction.FloatTernaryOperator floatOp, FloatingPointTernaryInstruction.DoubleTernaryOperator doubleOp, String name) {
+    public static Instruction getFloatingPointTernaryInstruction(FloatingPointTernaryInstruction.FloatTernaryOperator floatOp, FloatingPointTernaryInstruction.DoubleTernaryOperator doubleOp, String name) {
         return new FloatingPointTernaryInstruction(floatOp, doubleOp, name);
     }
 
@@ -435,7 +435,7 @@ public final class Instructions {
         }
     }
 
-    public static final Instruction ABS = new Instruction(2, 1, false) {
+    public static final Instruction ABS = new Instruction(1, 1, false) {
         @Override
         public void apply(CalculationContext context) {
             Deque<Either<VariableHolder, Stream<Variable>>> stack = context.stack();
@@ -499,7 +499,7 @@ public final class Instructions {
         }
 
         private Variable calcString(Variable var) {
-            return new StringVariable(var.stringValue());
+            return new StringVariable(var == null ? "null" : var.stringValue());
         }
     };
 
