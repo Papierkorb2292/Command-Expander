@@ -5,12 +5,12 @@ All features will be toggleable, so the game can stay as vanilla as you like.
 
 ## Current features
 
+- [Variables](../../wiki/Variables)
+
 ## Planned features
 
-- In-game datapack editor
 - Command optimizations
-- Function constants
+
+Parser directives and the editor were moved to another mod!
 
 ## Features currently in development
-
-- Variables
