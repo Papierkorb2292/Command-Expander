@@ -27,7 +27,8 @@ public class SummonCommandMixin {
             method = "method_13691",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/server/command/SummonCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/Identifier;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/nbt/NbtCompound;Z)I"
+                    target = "Lnet/minecraft/server/command/SummonCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/Identifier;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/nbt/NbtCompound;Z)I",
+                    remap = true
             ),
             remap = false
     )
@@ -53,7 +54,8 @@ public class SummonCommandMixin {
             method = "method_13689",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/server/command/SummonCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/Identifier;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/nbt/NbtCompound;Z)I"
+                    target = "Lnet/minecraft/server/command/SummonCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/Identifier;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/nbt/NbtCompound;Z)I",
+                    remap = true
             ),
             remap = false
     )
@@ -111,7 +113,8 @@ public class SummonCommandMixin {
             method = "method_13692",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/server/command/SummonCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/Identifier;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/nbt/NbtCompound;Z)I"
+                    target = "Lnet/minecraft/server/command/SummonCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/Identifier;Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/nbt/NbtCompound;Z)I",
+                    remap = true
             ),
             remap = false
     )

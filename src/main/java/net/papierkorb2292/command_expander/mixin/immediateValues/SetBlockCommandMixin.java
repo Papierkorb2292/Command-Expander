@@ -25,7 +25,8 @@ public class SetBlockCommandMixin {
             method = "method_13622",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/server/command/SetBlockCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/command/argument/BlockStateArgument;Lnet/minecraft/server/command/SetBlockCommand$Mode;Ljava/util/function/Predicate;)I"
+                    target = "Lnet/minecraft/server/command/SetBlockCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/command/argument/BlockStateArgument;Lnet/minecraft/server/command/SetBlockCommand$Mode;Ljava/util/function/Predicate;)I",
+                    remap = true
             ),
             remap = false
     )
@@ -37,7 +38,8 @@ public class SetBlockCommandMixin {
             method = "method_13625",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/server/command/SetBlockCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/command/argument/BlockStateArgument;Lnet/minecraft/server/command/SetBlockCommand$Mode;Ljava/util/function/Predicate;)I"
+                    target = "Lnet/minecraft/server/command/SetBlockCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/command/argument/BlockStateArgument;Lnet/minecraft/server/command/SetBlockCommand$Mode;Ljava/util/function/Predicate;)I",
+                    remap = true
             ),
             remap = false
     )
@@ -49,7 +51,8 @@ public class SetBlockCommandMixin {
             method = "method_13621",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/server/command/SetBlockCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/command/argument/BlockStateArgument;Lnet/minecraft/server/command/SetBlockCommand$Mode;Ljava/util/function/Predicate;)I"
+                    target = "Lnet/minecraft/server/command/SetBlockCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/command/argument/BlockStateArgument;Lnet/minecraft/server/command/SetBlockCommand$Mode;Ljava/util/function/Predicate;)I",
+                    remap = true
             ),
             remap = false
     )
@@ -61,7 +64,8 @@ public class SetBlockCommandMixin {
             method = "method_13626",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/server/command/SetBlockCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/command/argument/BlockStateArgument;Lnet/minecraft/server/command/SetBlockCommand$Mode;Ljava/util/function/Predicate;)I"
+                    target = "Lnet/minecraft/server/command/SetBlockCommand;execute(Lnet/minecraft/server/command/ServerCommandSource;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/command/argument/BlockStateArgument;Lnet/minecraft/server/command/SetBlockCommand$Mode;Ljava/util/function/Predicate;)I",
+                    remap = true
             ),
             remap = false
     )

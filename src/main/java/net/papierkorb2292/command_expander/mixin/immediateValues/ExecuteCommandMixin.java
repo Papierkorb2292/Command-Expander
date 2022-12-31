@@ -16,7 +16,8 @@ public abstract class ExecuteCommandMixin {
             method = "method_13268",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/server/command/ServerCommandSource;withLookingAt(Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/server/command/ServerCommandSource;"
+                    target = "Lnet/minecraft/server/command/ServerCommandSource;withLookingAt(Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/server/command/ServerCommandSource;",
+                    remap = true
             ),
             remap = false
     )

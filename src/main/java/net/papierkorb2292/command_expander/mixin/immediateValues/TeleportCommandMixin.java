@@ -22,7 +22,8 @@ public class TeleportCommandMixin {
             method = "execute(Lnet/minecraft/server/command/ServerCommandSource;Ljava/util/Collection;Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/command/argument/PosArgument;Lnet/minecraft/command/argument/PosArgument;Lnet/minecraft/server/command/TeleportCommand$LookTarget;)I",
             at = @At(
                     value = "INVOKE",
-                    target = "Ljava/util/Iterator;hasNext()Z"
+                    target = "Ljava/util/Iterator;hasNext()Z",
+                    remap = false
             )
     )
     private static boolean command_expander$requireNextPositionAndRotationIteratorEntry(boolean original) {
@@ -71,7 +72,8 @@ public class TeleportCommandMixin {
             at = @At(
                     value = "INVOKE",
                     target = "Ljava/util/Iterator;next()Ljava/lang/Object;",
-                    ordinal = 0
+                    ordinal = 0,
+                    remap = false
             )
     )
     private static Vec3d command_expander$getNextPositionIteratorValue(Vec3d vec3d) {
@@ -84,7 +86,8 @@ public class TeleportCommandMixin {
             at = @At(
                     value = "INVOKE",
                     target = "Ljava/util/Iterator;next()Ljava/lang/Object;",
-                    ordinal = 0
+                    ordinal = 0,
+                    remap = false
             )
     )
     private static Vec2f command_expander$getNextRotationIteratorValue(Vec2f vec2f) {
