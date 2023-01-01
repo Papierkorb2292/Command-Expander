@@ -29,6 +29,7 @@ import net.papierkorb2292.command_expander.variables.path.VariablePath;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -115,7 +116,34 @@ public class VarCommand {
                         .then(
                                 CommandManager.literal("iterator")
                                         .then(addIteratorOptions(CommandManager.argument("id", VariablePathArgumentType.variablePath())))
-                        ));
+                        )
+                        .then(
+                                CommandManager.literal("list-namespaces")
+                                        .executes(context -> {
+                                            Set<String> namespaces = CommandExpander.getVariableManager(context).getNamespaces();
+                                            Text feedback = Text.literal("Found the following namespaces: " + namespaces.stream().reduce("", VarCommand::combineCommaSeparated));
+                                            context.getSource().sendFeedback(feedback, false);
+                                            return namespaces.size();
+                                        }))
+                        .then(
+                                CommandManager.literal("list").then(
+                                        CommandManager.argument("namespace", VariableNamespaceArgumentType.variableNamespace())
+                                                .executes(context -> {
+                                                    Set<String> variables = CommandExpander.getVariableManager(context).getVariables(VariableNamespaceArgumentType.getVariableNamespace(context, "namespace"));
+                                                    Text feedback = Text.literal("Found the following variables: " + variables.stream().reduce("", VarCommand::combineCommaSeparated));
+                                                    context.getSource().sendFeedback(feedback, false);
+                                                    return variables.size();
+                                                }))));
+    }
+
+    private static String combineCommaSeparated(String left, String right) {
+        if(left.isEmpty()) {
+            return right;
+        }
+        if(right.isEmpty()) {
+            return left;
+        }
+        return left + ", " + right;
     }
 
     private static final Text GET_FEEDBACK = Text.of("Variable has the following value: ");

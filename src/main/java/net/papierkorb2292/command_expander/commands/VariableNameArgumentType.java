@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
 public class VariableNameArgumentType implements ArgumentType<VariableIdentifier> {
 
     private static final Collection<String> EXAMPLES = Arrays.asList("my_list", "minecraft:players52", "other_namespace:some.path");
-    private static final DynamicCommandExceptionType CHAR_NOT_ALLOWED_EXCEPTION = new DynamicCommandExceptionType(c -> Text.literal(String.format("The char '%s' isn't allowed in a variable name", c)));
+    public static final DynamicCommandExceptionType CHAR_NOT_ALLOWED_EXCEPTION = new DynamicCommandExceptionType(c -> Text.literal(String.format("The char '%s' isn't allowed in a variable name", c)));
 
     public static VariableNameArgumentType variableName() {
         return new VariableNameArgumentType();

@@ -8,6 +8,7 @@
     "EntitySelectorReaderMixin",
     "ExecuteCommandMixin",
     "MinecraftServerMixin",
+    "PersistentStateManagerAccessor",
     "ScoreboardMixin",
     "ServerScoreboardAccessor",
     "immediateValues.ArgumentBuilderMixin",

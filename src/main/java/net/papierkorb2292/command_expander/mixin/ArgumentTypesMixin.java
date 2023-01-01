@@ -31,5 +31,6 @@ public abstract class ArgumentTypesMixin {
         register(registry, "command_expander:variable_path", VariablePathArgumentType.class, ConstantArgumentSerializer.of(VariablePathArgumentType::variablePath));
         register(registry, "command_expander:variable_name", VariableNameArgumentType.class, ConstantArgumentSerializer.of(VariableNameArgumentType::variableName));
         register(registry, "command_expander:variable_immediate_value", VariableImmediateValueArgumentType.class, ConstantArgumentSerializer.of(VariableImmediateValueArgumentType::variableImmediateValue));
+        register(registry, "command_expander:variable_namespace", VariableNamespaceArgumentType.class, ConstantArgumentSerializer.of(VariableNamespaceArgumentType::variableNamespace));
     }
 }

@@ -20,12 +20,14 @@ import net.minecraft.util.Identifier;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.PersistentStateManager;
 import net.papierkorb2292.command_expander.CommandExpander;
+import net.papierkorb2292.command_expander.mixin.PersistentStateManagerAccessor;
 import net.papierkorb2292.command_expander.variables.path.VariablePath;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.File;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class VariableManager {
@@ -196,6 +198,32 @@ public class VariableManager {
         TYPES_BY_STRING.put(name, template);
         template.id = (byte)TYPES_BY_ID.size();
         TYPES_BY_ID.add(template);
+    }
+
+    public Set<String> getNamespaces() {
+        File variables = new File(((PersistentStateManagerAccessor)stateManager).getDirectory(), COMMAND_VARIABLE_PREFIX);
+        File[] files = variables.listFiles();
+        if(files == null) {
+            return Collections.emptySet();
+        }
+        Set<String> result = Arrays.stream(files)
+                .map(File::getName)
+                .filter(name -> name.endsWith(".dat"))
+                .map(name -> name.substring(0, name.length() - 4))
+                .filter(name -> !VariableIdentifier.isNameInvalid(name))
+                .collect(Collectors.toSet());
+
+        result.addAll(namespaces.keySet());
+
+        return result;
+    }
+
+    public Set<String> getVariables(String namespace) {
+        VariablePersistentState state = stateManager.get(data -> createVariablePersistentState(data, namespace), COMMAND_VARIABLE_PREFIX + namespace);;
+        if(state == null) {
+            return Collections.emptySet();
+        }
+        return state.getIds().map(id -> id.path).collect(Collectors.toSet());
     }
 
     @FunctionalInterface
